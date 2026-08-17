@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Sales Tracker</title>
+  <style>
+    :root { --ink:#173042; --muted:#6b7d89; --paper:#f5f8f7; --card:#fff; --line:#dce6e3; --teal:#0f766e; --teal-soft:#dff5ef; --gold:#f3b53f; --blue:#4188c6; --rose:#d75f75; --shadow:0 12px 35px rgba(20,52,62,.08); }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); background:var(--paper); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .shell { max-width:1180px; margin:auto; padding:36px 24px 56px; } header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:30px; } h1 { font-size:clamp(1.8rem,4vw,2.7rem); line-height:1.06; margin:0; letter-spacing:-.055em; } .subtitle { margin:10px 0 0; color:var(--muted); } .today { color:var(--teal); font-weight:700; font-size:.92rem; background:var(--teal-soft); padding:10px 14px; border-radius:999px; white-space:nowrap; }
+    .tabs { display:flex; gap:8px; margin-bottom:24px; border-bottom:1px solid var(--line); } .tab { border:0; background:transparent; color:var(--muted); padding:12px 14px; font:inherit; font-weight:700; cursor:pointer; border-bottom:3px solid transparent; } .tab.active { color:var(--teal); border-color:var(--teal); } .view { display:none; } .view.active { display:block; }
+    .entry-layout { display:grid; grid-template-columns:1.35fr .65fr; gap:24px; } .panel, .metric { background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); } .panel { padding:26px; } h2 { margin:0 0 6px; font-size:1.24rem; letter-spacing:-.025em; } .hint { color:var(--muted); margin:0 0 22px; font-size:.94rem; }
+    .date-row { display:flex; gap:12px; align-items:end; margin-bottom:22px; } label { display:grid; gap:7px; color:var(--muted); font-size:.83rem; font-weight:700; } input { border:1px solid var(--line); border-radius:10px; padding:11px 12px; font:inherit; color:var(--ink); background:#fff; } input:focus { outline:3px solid rgba(15,118,110,.17); border-color:var(--teal); }
+    .product-grid { display:grid; gap:11px; } .product-row { display:grid; grid-template-columns:1fr 120px; align-items:center; gap:16px; padding:13px 0; border-bottom:1px solid var(--line); } .product-row:last-child { border-bottom:0; } .product-name { border:0; padding:3px; border-radius:4px; font-weight:750; font-size:1rem; width:100%; } .product-name:hover { background:var(--paper); } .product-name:focus { outline:2px solid var(--teal); } .product-row input[type=number] { text-align:right; font-weight:700; width:100%; }
+    .actions { display:flex; gap:10px; margin-top:22px; flex-wrap:wrap; } button { font:inherit; } .primary, .secondary { border:0; border-radius:10px; padding:12px 16px; font-weight:800; cursor:pointer; } .primary { color:#fff; background:var(--teal); } .secondary { color:var(--ink); background:#edf2f1; } .primary:hover { background:#0b625c; } .secondary:hover { background:#dfe8e5; }
+    .quick-total { display:grid; align-content:start; gap:18px; } .big { font-size:2.8rem; font-weight:800; letter-spacing:-.06em; margin:2px 0; } .mini-list { display:grid; gap:12px; margin-top:4px; } .mini { display:flex; justify-content:space-between; gap:10px; padding-top:12px; border-top:1px solid var(--line); font-size:.9rem; }.mini span:last-child { font-weight:800; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:24px; } .metric { padding:18px; } .metric-label { color:var(--muted); font-size:.82rem; font-weight:700; } .metric-value { font-size:1.7rem; font-weight:800; letter-spacing:-.045em; margin-top:7px; } .metric-detail { color:var(--muted); font-size:.8rem; margin-top:5px; }
+    .dashboard-grid { display:grid; grid-template-columns:1.05fr .95fr; gap:24px; } .bars { display:grid; gap:17px; margin-top:20px; } .bar-head { display:flex; justify-content:space-between; font-size:.9rem; margin-bottom:7px; } .track { height:10px; border-radius:9px; background:#e9efed; overflow:hidden; } .fill { height:100%; border-radius:9px; background:var(--teal); width:0; transition:width .35s ease; } .fill.b { background:var(--gold); } .fill.c { background:var(--blue); } .fill.d { background:var(--rose); }
+    table { width:100%; border-collapse:collapse; margin-top:10px; } th,td { padding:13px 8px; text-align:left; border-bottom:1px solid var(--line); font-size:.9rem; } th { color:var(--muted); font-size:.76rem; text-transform:uppercase; letter-spacing:.06em; } th:not(:first-child),td:not(:first-child) { text-align:right; } .empty { color:var(--muted); text-align:center; padding:26px; } .delete { color:#b33f51; background:transparent; border:0; cursor:pointer; font-weight:700; }
+    @media(max-width:800px){.entry-layout,.dashboard-grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}header{flex-direction:column}.shell{padding:25px 16px 40px}.panel{padding:20px}} @media(max-width:420px){.product-row{grid-template-columns:1fr 100px;gap:9px}.metrics{gap:10px}.metric{padding:14px}.metric-value{font-size:1.4rem}.date-row{align-items:stretch;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><div><h1>Daily sales, clearly.</h1><p class="subtitle">Track four products and see your performance at a glance.</p></div><div class="today" id="todayLabel"></div></header>
+    <nav class="tabs" aria-label="Application views"><button class="tab active" data-view="entry">Daily entry</button><button class="tab" data-view="dashboard">Dashboard</button></nav>
+    <section class="view active" id="entry">
+      <div class="entry-layout"><div class="panel"><h2>Record today’s sales</h2><p class="hint">Enter units sold for each product. Product names are editable.</p><div class="date-row"><label>Date<input id="saleDate" type="date"></label></div><div class="product-grid" id="productGrid"></div><div class="actions"><button class="primary" id="saveBtn">Save daily sales</button><button class="secondary" id="clearBtn">Clear form</button></div></div>
+      <aside class="panel quick-total"><div><div class="metric-label">Today’s total</div><div class="big" id="liveTotal">0</div><div class="hint">units across all products</div></div><div class="mini-list" id="liveBreakdown"></div></aside></div>
+    </section>
+    <section class="view" id="dashboard"><div class="metrics"><div class="metric"><div class="metric-label">Total units</div><div class="metric-value" id="totalUnits">0</div><div class="metric-detail">all recorded days</div></div><div class="metric"><div class="metric-label">Days tracked</div><div class="metric-value" id="daysTracked">0</div><div class="metric-detail">unique daily entries</div></div><div class="metric"><div class="metric-label">Daily average</div><div class="metric-value" id="dailyAverage">0</div><div class="metric-detail">units per day</div></div><div class="metric"><div class="metric-label">Top product</div><div class="metric-value" id="topProduct">—</div><div class="metric-detail" id="topProductDetail">no sales yet</div></div></div>
+      <div class="dashboard-grid"><div class="panel"><h2>Product performance</h2><p class="hint">Total units sold by product.</p><div class="bars" id="performanceBars"></div></div><div class="panel"><h2>Sales history</h2><p class="hint">Your most recent daily records.</p><div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Total units</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div></div></div>
+    </section>
+  </main>
+  <script>
+    const storageKey = 'daily-sales-tracker-v1';
+    const defaultProducts = ['Product One', 'Product Two', 'Product Three', 'Product Four'];
+    let state = JSON.parse(localStorage.getItem(storageKey) || 'null') || { products: defaultProducts, entries: [] };
+    const $ = selector => document.querySelector(selector);
+    const dateFormatter = new Intl.DateTimeFormat(undefined, { month:'short', day:'numeric', year:'numeric' });
+    $('#saleDate').valueAsDate = new Date(); $('#todayLabel').textContent = dateFormatter.format(new Date());
+    function persist(){ localStorage.setItem(storageKey, JSON.stringify(state)); syncToDatabase(); }
+    async function syncToDatabase(){
+      try { await fetch('/.netlify/functions/sales', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(state) }); }
+      catch (error) { console.warn('Sales are saved locally and will sync when the database is available.', error); }
+    }
+    async function loadFromDatabase(){
+      try {
+        const response = await fetch('/.netlify/functions/sales');
+        if (!response.ok) return;
+        const databaseState = await response.json();
+        if (Array.isArray(databaseState.products) && databaseState.products.length === 4 && Array.isArray(databaseState.entries)) {
+          state.products = databaseState.products;
+          state.entries = databaseState.entries;
+          localStorage.setItem(storageKey, JSON.stringify(state));
+          renderEntry();
+          renderDashboard();
+        }
+      } catch (error) { console.warn('Using local sales data until the database is available.', error); }
+    }
+    function renderEntry(){
+      $('#productGrid').innerHTML = state.products.map((product,index) => `<div class="product-row"><input class="product-name" aria-label="Product ${index + 1} name" value="${escapeHTML(product)}" data-name="${index}"><input class="units" aria-label="${escapeHTML(product)} units sold" type="number" min="0" value="0" data-units="${index}"></div>`).join('');
+      document.querySelectorAll('.units').forEach(input => input.addEventListener('input', updateLive));
+      document.querySelectorAll('.product-name').forEach(input => input.addEventListener('change', event => { state.products[+event.target.dataset.name] = event.target.value.trim() || `Product ${+event.target.dataset.name + 1}`; persist(); renderEntry(); renderDashboard(); })); updateLive();
+    }
+    function escapeHTML(value){ const node=document.createElement('div'); node.textContent=value; return node.innerHTML; }
+    function updateLive(){ const units=[...document.querySelectorAll('.units')].map(input => Math.max(0,Number(input.value)||0)); $('#liveTotal').textContent=units.reduce((sum,value)=>sum+value,0).toLocaleString(); $('#liveBreakdown').innerHTML=state.products.map((name,index)=>`<div class="mini"><span>${escapeHTML(name)}</span><span>${units[index].toLocaleString()}</span></div>`).join(''); }
+    function saveEntry(){ const date=$('#saleDate').value; const units=[...document.querySelectorAll('.units')].map(input=>Math.max(0,Number(input.value)||0)); if(!date){ alert('Choose a date first.'); return; } const existing=state.entries.findIndex(entry=>entry.date===date); const entry={date,units}; if(existing>=0) state.entries[existing]=entry; else state.entries.push(entry); state.entries.sort((a,b)=>b.date.localeCompare(a.date)); persist(); renderDashboard(); $('#dashboard').classList.add('active'); $('#entry').classList.remove('active'); document.querySelector('[data-view="dashboard"]').classList.add('active'); document.querySelector('[data-view="entry"]').classList.remove('active'); }
+    function renderDashboard(){ const totals=state.products.map((_,index)=>state.entries.reduce((sum,entry)=>sum+(entry.units[index]||0),0)); const allUnits=totals.reduce((sum,value)=>sum+value,0); const topIndex=totals.indexOf(Math.max(...totals)); $('#totalUnits').textContent=allUnits.toLocaleString(); $('#daysTracked').textContent=state.entries.length; $('#dailyAverage').textContent=state.entries.length ? Math.round(allUnits/state.entries.length).toLocaleString() : '0'; $('#topProduct').textContent=allUnits ? state.products[topIndex] : '—'; $('#topProductDetail').textContent=allUnits ? `${totals[topIndex].toLocaleString()} units sold` : 'no sales yet'; const max=Math.max(...totals,1); $('#performanceBars').innerHTML=state.products.map((name,index)=>`<div><div class="bar-head"><span>${escapeHTML(name)}</span><strong>${totals[index].toLocaleString()} units</strong></div><div class="track"><div class="fill ${['','b','c','d'][index]}" style="width:${totals[index]/max*100}%"></div></div></div>`).join(''); $('#historyBody').innerHTML=state.entries.length ? state.entries.slice(0,8).map(entry=>`<tr><td>${dateFormatter.format(new Date(entry.date+'T00:00:00'))}</td><td>${entry.units.reduce((sum,value)=>sum+value,0).toLocaleString()}</td><td><button class="delete" data-delete="${entry.date}">Delete</button></td></tr>`).join('') : '<tr><td colspan="3" class="empty">No daily sales saved yet.</td></tr>'; document.querySelectorAll('[data-delete]').forEach(button=>button.addEventListener('click',()=>{state.entries=state.entries.filter(entry=>entry.date!==button.dataset.delete);persist();renderDashboard();})); }
+    document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab,.view').forEach(item=>item.classList.remove('active'));tab.classList.add('active');$('#'+tab.dataset.view).classList.add('active');})); $('#saveBtn').addEventListener('click',saveEntry); $('#clearBtn').addEventListener('click',()=>{document.querySelectorAll('.units').forEach(input=>input.value=0);updateLive();}); renderEntry(); renderDashboard(); loadFromDatabase();
+  </script>
+</body>
+</html>
