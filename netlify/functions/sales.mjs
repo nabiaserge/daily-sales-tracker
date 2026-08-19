@@ -8,12 +8,12 @@ const defaultData = {
   entries: []
 };
 
-function dataKey(userId) {
-  return `sales:${userId}`;
+function dataKey() {
+  return "sales:shared";
 }
 
-function auditKey(userId) {
-  return `audit:${userId}`;
+function auditKey() {
+  return "audit:shared";
 }
 
 function total(units = []) {
@@ -58,13 +58,17 @@ function alignUnits(previousProducts, nextProducts, units) {
 }
 
 async function loadData(session) {
-  const existing = await store.get(dataKey(session.userId), { type: "json" });
+  const existing = await store.get(dataKey(), { type: "json" });
   if (existing) return hydrateEntries(existing, session);
 
+  const personal = await store.get(`sales:${session.userId}`, { type: "json" });
   const migrationOwner = await store.get("legacy-migration-owner", { type: "text" });
   const legacy = !migrationOwner ? await store.get("sales-data", { type: "json" }) : null;
-  const initial = hydrateEntries(legacy ?? defaultData, session);
-  await store.setJSON(dataKey(session.userId), initial);
+  const initial = hydrateEntries(personal ?? legacy ?? defaultData, session);
+  await store.setJSON(dataKey(), initial);
+  const sharedAudit = await store.get(auditKey(), { type: "json" });
+  const personalAudit = await store.get(`audit:${session.userId}`, { type: "json" });
+  if (!sharedAudit && personalAudit) await store.setJSON(auditKey(), personalAudit);
   if (legacy) await store.set("legacy-migration-owner", session.userId);
   return initial;
 }
@@ -119,7 +123,7 @@ export default async (request) => {
 
   if (request.method === "GET") {
     const data = await loadData(session);
-    const audit = (await store.get(auditKey(session.userId), { type: "json" })) ?? [];
+    const audit = (await store.get(auditKey(), { type: "json" })) ?? [];
     return Response.json({ ...data, audit }, { headers: { "Cache-Control": "no-store" } });
   }
 
@@ -162,11 +166,11 @@ export default async (request) => {
     })
   };
   const newEvents = buildAudit(previous, normalized, session);
-  const existingAudit = (await store.get(auditKey(session.userId), { type: "json" })) ?? [];
+  const existingAudit = (await store.get(auditKey(), { type: "json" })) ?? [];
   const audit = [...newEvents, ...existingAudit].slice(0, 500);
 
-  await store.setJSON(dataKey(session.userId), normalized);
-  await store.setJSON(auditKey(session.userId), audit);
+  await store.setJSON(dataKey(), normalized);
+  await store.setJSON(auditKey(), audit);
   return Response.json({ ...normalized, audit });
 };
 
