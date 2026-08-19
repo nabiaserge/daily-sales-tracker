@@ -20,13 +20,28 @@ function total(units = []) {
   return units.reduce((sum, value) => sum + (Number(value) || 0), 0);
 }
 
+function sessionActor(session) {
+  return { id: session.userId, name: session.name, email: session.email };
+}
+
 function auditEvent(session, action, details) {
   return {
     id: randomUUID(),
     timestamp: new Date().toISOString(),
     action,
-    actor: { id: session.userId, name: session.name, email: session.email },
+    actor: sessionActor(session),
     ...details
+  };
+}
+
+function hydrateEntries(data, session) {
+  return {
+    ...data,
+    entries: data.entries.map((entry) => ({
+      ...entry,
+      createdBy: entry.createdBy ?? sessionActor(session),
+      createdAt: entry.createdAt ?? `${entry.date}T00:00:00.000Z`
+    }))
   };
 }
 
@@ -44,11 +59,11 @@ function alignUnits(previousProducts, nextProducts, units) {
 
 async function loadData(session) {
   const existing = await store.get(dataKey(session.userId), { type: "json" });
-  if (existing) return existing;
+  if (existing) return hydrateEntries(existing, session);
 
   const migrationOwner = await store.get("legacy-migration-owner", { type: "text" });
   const legacy = !migrationOwner ? await store.get("sales-data", { type: "json" }) : null;
-  const initial = legacy ?? defaultData;
+  const initial = hydrateEntries(legacy ?? defaultData, session);
   await store.setJSON(dataKey(session.userId), initial);
   if (legacy) await store.set("legacy-migration-owner", session.userId);
   return initial;
@@ -124,11 +139,28 @@ export default async (request) => {
       && entry.units.every((value) => Number.isFinite(Number(value)) && Number(value) >= 0));
   if (!valid) return Response.json({ error: "invalid_sales_data" }, { status: 400 });
 
-  const normalized = {
-    products: next.products.map((name) => name.trim()),
-    entries: next.entries.map((entry) => ({ date: entry.date, units: entry.units.map(Number) }))
-  };
   const previous = await loadData(session);
+  const products = next.products.map((name) => name.trim());
+  const previousEntries = new Map(previous.entries.map((entry) => [entry.date, entry]));
+  const timestamp = new Date().toISOString();
+  const normalized = {
+    products,
+    entries: next.entries.map((entry) => {
+      const oldEntry = previousEntries.get(entry.date);
+      const units = entry.units.map(Number);
+      const changed = oldEntry
+        && JSON.stringify(alignUnits(previous.products, products, oldEntry.units)) !== JSON.stringify(units);
+      return {
+        date: entry.date,
+        units,
+        createdBy: oldEntry?.createdBy ?? sessionActor(session),
+        createdAt: oldEntry?.createdAt ?? timestamp,
+        ...(oldEntry?.updatedBy ? { updatedBy: oldEntry.updatedBy } : {}),
+        ...(oldEntry?.updatedAt ? { updatedAt: oldEntry.updatedAt } : {}),
+        ...(changed ? { updatedBy: sessionActor(session), updatedAt: timestamp } : {})
+      };
+    })
+  };
   const newEvents = buildAudit(previous, normalized, session);
   const existingAudit = (await store.get(auditKey(session.userId), { type: "json" })) ?? [];
   const audit = [...newEvents, ...existingAudit].slice(0, 500);
