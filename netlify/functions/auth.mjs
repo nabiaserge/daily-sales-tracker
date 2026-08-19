@@ -15,6 +15,7 @@ function publicUser(user) {
     email: user.email,
     name: user.name,
     role: user.role ?? "staff",
+    active: user.active !== false,
     createdAt: user.createdAt
   };
 }
@@ -85,6 +86,7 @@ async function createStaff(body, session) {
     email,
     name,
     role: "staff",
+    active: true,
     ...passwordFields(password),
     createdAt: new Date().toISOString(),
     createdBy: session.userId
@@ -117,6 +119,7 @@ async function bootstrapSuperAdmin(body) {
     email,
     name,
     role: "superadmin",
+    active: true,
     ...passwordFields(password),
     createdAt: existingUser?.createdAt ?? new Date().toISOString()
   };
@@ -140,6 +143,35 @@ async function listUsers(session) {
     (await readUserIndex()).map((email) => authStore.get(userKey(email), { type: "json" }))
   )).filter(Boolean).map(publicUser).sort((first, second) => first.name.localeCompare(second.name));
   return Response.json({ users }, { headers: jsonHeaders });
+}
+
+async function setUserAccess(body, session) {
+  if (!session || session.role !== "superadmin") {
+    return Response.json({ error: "forbidden" }, { status: 403, headers: jsonHeaders });
+  }
+
+  const userId = String(body.userId ?? "");
+  const active = body.active === true;
+  const indexedUsers = await Promise.all(
+    (await readUserIndex()).map(async (email) => ({
+      email,
+      user: await authStore.get(userKey(email), { type: "json" })
+    }))
+  );
+  const match = indexedUsers.find((entry) => entry.user?.id === userId);
+  if (!match) return Response.json({ error: "user_not_found" }, { status: 404, headers: jsonHeaders });
+  if (match.user.role === "superadmin") {
+    return Response.json({ error: "superadmin_protected" }, { status: 400, headers: jsonHeaders });
+  }
+
+  const user = {
+    ...match.user,
+    active,
+    accessUpdatedAt: new Date().toISOString(),
+    accessUpdatedBy: session.userId
+  };
+  await authStore.setJSON(userKey(match.email), user);
+  return Response.json({ user: publicUser(user) }, { headers: jsonHeaders });
 }
 
 export default async (request) => {
@@ -170,6 +202,7 @@ export default async (request) => {
   const body = await request.json().catch(() => ({}));
   if (body.action === "bootstrap") return bootstrapSuperAdmin(body);
   if (body.action === "create_user") return createStaff(body, await getSession(request));
+  if (body.action === "set_user_access") return setUserAccess(body, await getSession(request));
   if (body.action !== "login") {
     return Response.json({ error: "invalid_action" }, { status: 400, headers: jsonHeaders });
   }
@@ -181,7 +214,7 @@ export default async (request) => {
   }
 
   const user = await authStore.get(userKey(email), { type: "json" });
-  if (!user || !["superadmin", "staff"].includes(user.role)) {
+  if (!user || user.active === false || !["superadmin", "staff"].includes(user.role)) {
     return Response.json({ error: "login_failed" }, { status: 401, headers: jsonHeaders });
   }
   const expected = Buffer.from(user.passwordHash, "hex");
