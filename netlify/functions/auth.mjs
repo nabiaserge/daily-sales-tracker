@@ -44,8 +44,8 @@ function validateCredentials(email, password) {
 function validSetupKey(candidate) {
   const expected = process.env.SUPER_ADMIN_SETUP_KEY;
   if (!expected || !candidate) return false;
-  const expectedHash = createHash("sha256").update(expected).digest();
-  const candidateHash = createHash("sha256").update(candidate).digest();
+  const expectedHash = createHash("sha256").update(expected.trim()).digest();
+  const candidateHash = createHash("sha256").update(candidate.trim()).digest();
   return timingSafeEqual(expectedHash, candidateHash);
 }
 
