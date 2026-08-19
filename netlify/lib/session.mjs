@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 
 const authStore = getStore("daily-sales-auth");
@@ -16,6 +17,13 @@ export async function getSession(request) {
   const session = await authStore.get(`session:${token}`, { type: "json" });
   if (!session || session.expiresAt < Date.now() || !["superadmin", "staff"].includes(session.role)) {
     if (session) await authStore.delete(`session:${token}`);
+    return null;
+  }
+
+  const accountKey = `user:${createHash("sha256").update(session.email).digest("hex")}`;
+  const account = await authStore.get(accountKey, { type: "json" });
+  if (!account || account.active === false || account.role !== session.role) {
+    await authStore.delete(`session:${token}`);
     return null;
   }
 
