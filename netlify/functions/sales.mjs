@@ -67,7 +67,20 @@ function buildAudit(previous, next, session) {
     }
   }
 
-  if (JSON.stringify(previous.products) !== JSON.stringify(next.products)) {
+  if (previous.products.length < next.products.length) {
+    events.push(auditEvent(session, "product_added", {
+      product: next.products.at(-1),
+      before: previous.products,
+      after: next.products
+    }));
+  } else if (previous.products.length > next.products.length) {
+    const removedIndex = previous.products.findIndex((product, index) => product !== next.products[index]);
+    events.push(auditEvent(session, "product_removed", {
+      product: previous.products[removedIndex < 0 ? previous.products.length - 1 : removedIndex],
+      before: previous.products,
+      after: next.products
+    }));
+  } else if (JSON.stringify(previous.products) !== JSON.stringify(next.products)) {
     events.push(auditEvent(session, "products_updated", { before: previous.products, after: next.products }));
   }
   return events;
@@ -88,13 +101,14 @@ export default async (request) => {
   }
 
   const next = await request.json().catch(() => null);
-  const valid = Array.isArray(next?.products)
-    && next.products.length === 4
-    && next.products.every((name) => typeof name === "string" && name.trim().length > 0)
+  const productCount = Array.isArray(next?.products) ? next.products.length : 0;
+  const valid = productCount >= 1
+    && productCount <= 50
+    && next.products.every((name) => typeof name === "string" && name.trim().length > 0 && name.trim().length <= 120)
     && Array.isArray(next?.entries)
     && next.entries.every((entry) => /^\d{4}-\d{2}-\d{2}$/.test(entry?.date)
       && Array.isArray(entry.units)
-      && entry.units.length === 4
+      && entry.units.length === productCount
       && entry.units.every((value) => Number.isFinite(Number(value)) && Number(value) >= 0));
   if (!valid) return Response.json({ error: "invalid_sales_data" }, { status: 400 });
 
