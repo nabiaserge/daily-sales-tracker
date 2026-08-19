@@ -14,7 +14,7 @@ export async function getSession(request) {
   if (!token) return null;
 
   const session = await authStore.get(`session:${token}`, { type: "json" });
-  if (!session || session.expiresAt < Date.now()) {
+  if (!session || session.expiresAt < Date.now() || !["superadmin", "staff"].includes(session.role)) {
     if (session) await authStore.delete(`session:${token}`);
     return null;
   }
