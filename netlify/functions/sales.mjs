@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "node:crypto";
+import { createBackup } from "../lib/backup.mjs";
 import { getSession } from "../lib/session.mjs";
 
 const store = getStore("daily-sales-tracker");
@@ -65,9 +66,17 @@ async function loadData(session) {
   const migrationOwner = await store.get("legacy-migration-owner", { type: "text" });
   const legacy = !migrationOwner ? await store.get("sales-data", { type: "json" }) : null;
   const initial = hydrateEntries(personal ?? legacy ?? defaultData, session);
-  await store.setJSON(dataKey(), initial);
   const sharedAudit = await store.get(auditKey(), { type: "json" });
   const personalAudit = await store.get(`audit:${session.userId}`, { type: "json" });
+  if (personal || legacy) {
+    await createBackup({
+      reason: "before_shared_storage_migration",
+      data: initial,
+      audit: personalAudit ?? [],
+      session
+    });
+  }
+  await store.setJSON(dataKey(), initial);
   if (!sharedAudit && personalAudit) await store.setJSON(auditKey(), personalAudit);
   if (legacy) await store.set("legacy-migration-owner", session.userId);
   return initial;
@@ -168,6 +177,19 @@ export default async (request) => {
   const newEvents = buildAudit(previous, normalized, session);
   const existingAudit = (await store.get(auditKey(), { type: "json" })) ?? [];
   const audit = [...newEvents, ...existingAudit].slice(0, 500);
+
+  try {
+    await createBackup({
+      reason: JSON.stringify(previous.products) === JSON.stringify(normalized.products)
+        ? "before_sales_update"
+        : "before_product_structure_update",
+      data: previous,
+      audit: existingAudit,
+      session
+    });
+  } catch {
+    return Response.json({ error: "backup_failed" }, { status: 503 });
+  }
 
   await store.setJSON(dataKey(), normalized);
   await store.setJSON(auditKey(), audit);
