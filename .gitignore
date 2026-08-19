@@ -1,0 +1,13 @@
+android/.gradle/
+android/.gradle-user-home/
+android/.gradle-ro-cache/
+android/.android-user-home/
+android/.android-sdk/
+android/build/
+android/app/build/
+android/local.properties
+android/keystore.properties
+android/*.jks
+android/*.keystore
+android/captures/
+android/*.log

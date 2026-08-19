@@ -1,3 +1,4 @@
 [build]
-  publish = "."
+  command = "mkdir -p dist && cp index.html manifest.webmanifest privacy.html dist/"
+  publish = "dist"
   functions = "netlify/functions"

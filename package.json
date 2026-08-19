@@ -2,6 +2,10 @@
   "name": "daily-sales-tracker",
   "private": true,
   "version": "1.0.0",
+  "scripts": {
+    "android:bundle": "powershell -ExecutionPolicy Bypass -File android/scripts/build-release.ps1",
+    "android:debug": "powershell -ExecutionPolicy Bypass -File android/scripts/build-debug.ps1"
+  },
   "dependencies": {
     "@netlify/blobs": "^8.1.0"
   }

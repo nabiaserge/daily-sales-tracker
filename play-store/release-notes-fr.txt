@@ -1,0 +1,1 @@
+Première version Android de Suivi Ventes : saisie quotidienne, tableau de bord, historique filtrable, traçabilité et gestion sécurisée des utilisateurs.
