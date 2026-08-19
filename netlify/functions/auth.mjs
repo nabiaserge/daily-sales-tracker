@@ -65,7 +65,7 @@ async function addToUserIndex(email) {
   if (!index.includes(email)) await authStore.setJSON(usersIndexKey, [...index, email]);
 }
 
-async function createStaff(body, session) {
+async function createUser(body, session) {
   if (!session || session.role !== "superadmin") {
     return Response.json({ error: "forbidden" }, { status: 403, headers: jsonHeaders });
   }
@@ -73,9 +73,13 @@ async function createStaff(body, session) {
   const name = String(body.name ?? "").trim();
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
+  const role = String(body.role ?? "staff");
   if (name.length < 2) return Response.json({ error: "invalid_name" }, { status: 400, headers: jsonHeaders });
   if (!validateCredentials(email, password)) {
     return Response.json({ error: "invalid_credentials" }, { status: 400, headers: jsonHeaders });
+  }
+  if (!["staff", "admin"].includes(role)) {
+    return Response.json({ error: "invalid_role" }, { status: 400, headers: jsonHeaders });
   }
   if (await authStore.get(userKey(email), { type: "json" })) {
     return Response.json({ error: "email_exists" }, { status: 409, headers: jsonHeaders });
@@ -85,7 +89,7 @@ async function createStaff(body, session) {
     id: randomUUID(),
     email,
     name,
-    role: "staff",
+    role,
     active: true,
     ...passwordFields(password),
     createdAt: new Date().toISOString(),
@@ -136,7 +140,7 @@ async function bootstrapSuperAdmin(body) {
 }
 
 async function listUsers(session) {
-  if (!session || session.role !== "superadmin") {
+  if (!session || !["superadmin", "admin"].includes(session.role)) {
     return Response.json({ error: "forbidden" }, { status: 403, headers: jsonHeaders });
   }
   const users = (await Promise.all(
@@ -146,7 +150,7 @@ async function listUsers(session) {
 }
 
 async function setUserAccess(body, session) {
-  if (!session || session.role !== "superadmin") {
+  if (!session || !["superadmin", "admin"].includes(session.role)) {
     return Response.json({ error: "forbidden" }, { status: 403, headers: jsonHeaders });
   }
 
@@ -162,6 +166,9 @@ async function setUserAccess(body, session) {
   if (!match) return Response.json({ error: "user_not_found" }, { status: 404, headers: jsonHeaders });
   if (match.user.role === "superadmin") {
     return Response.json({ error: "superadmin_protected" }, { status: 400, headers: jsonHeaders });
+  }
+  if (session.role === "admin" && match.user.role !== "staff") {
+    return Response.json({ error: "admin_target_protected" }, { status: 403, headers: jsonHeaders });
   }
 
   const user = {
@@ -201,7 +208,7 @@ export default async (request) => {
 
   const body = await request.json().catch(() => ({}));
   if (body.action === "bootstrap") return bootstrapSuperAdmin(body);
-  if (body.action === "create_user") return createStaff(body, await getSession(request));
+  if (body.action === "create_user") return createUser(body, await getSession(request));
   if (body.action === "set_user_access") return setUserAccess(body, await getSession(request));
   if (body.action !== "login") {
     return Response.json({ error: "invalid_action" }, { status: 400, headers: jsonHeaders });
@@ -214,7 +221,7 @@ export default async (request) => {
   }
 
   const user = await authStore.get(userKey(email), { type: "json" });
-  if (!user || user.active === false || !["superadmin", "staff"].includes(user.role)) {
+  if (!user || user.active === false || !["superadmin", "admin", "staff"].includes(user.role)) {
     return Response.json({ error: "login_failed" }, { status: 401, headers: jsonHeaders });
   }
   const expected = Buffer.from(user.passwordHash, "hex");
