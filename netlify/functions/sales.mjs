@@ -30,6 +30,18 @@ function auditEvent(session, action, details) {
   };
 }
 
+function alignUnits(previousProducts, nextProducts, units) {
+  if (previousProducts.length < nextProducts.length) {
+    return [...units, ...Array(nextProducts.length - previousProducts.length).fill(0)];
+  }
+  if (previousProducts.length > nextProducts.length) {
+    const removedIndex = previousProducts.findIndex((product, index) => product !== nextProducts[index]);
+    const index = removedIndex < 0 ? previousProducts.length - 1 : removedIndex;
+    return units.filter((_, unitIndex) => unitIndex !== index);
+  }
+  return units;
+}
+
 async function loadData(session) {
   const existing = await store.get(dataKey(session.userId), { type: "json" });
   if (existing) return existing;
@@ -51,7 +63,7 @@ function buildAudit(previous, next, session) {
     const oldEntry = previousEntries.get(date);
     if (!oldEntry) {
       events.push(auditEvent(session, "sale_created", { date, total: total(entry.units), after: entry.units }));
-    } else if (JSON.stringify(oldEntry.units) !== JSON.stringify(entry.units)) {
+    } else if (JSON.stringify(alignUnits(previous.products, next.products, oldEntry.units)) !== JSON.stringify(entry.units)) {
       events.push(auditEvent(session, "sale_updated", {
         date,
         total: total(entry.units),
