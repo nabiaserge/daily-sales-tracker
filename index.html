@@ -70,7 +70,7 @@
       </section>
 
       <section class="view" id="dashboard">
-        <div class="panel dashboard-toolbar"><div><h2 data-i18n="dashboardPeriod">Période analysée</h2><p id="dashboardPeriodLabel" class="hint"></p></div><div class="dashboard-actions"><label><span data-i18n="period">Période</span><select id="dashboardPeriodFilter"><option value="current_month" data-i18n="currentMonth">Ce mois</option><option value="previous_month" data-i18n="previousMonth">Mois précédent</option><option value="current_year" data-i18n="currentYear">Cette année</option><option value="all" data-i18n="allTime">Depuis le début</option></select></label><button id="exportDashboardCsv" class="secondary" data-i18n="exportCsv">Exporter CSV</button></div></div>
+        <div class="panel dashboard-toolbar"><div><h2 data-i18n="dashboardPeriod">Période analysée</h2><p id="dashboardPeriodLabel" class="hint"></p></div><div class="dashboard-actions"><label><span data-i18n="period">Période</span><select id="dashboardPeriodFilter"><option value="current_month" data-i18n="currentMonth">Ce mois</option><option value="previous_month" data-i18n="previousMonth">Mois précédent</option><option value="current_year" data-i18n="currentYear">Cette année</option><option value="all" data-i18n="allTime" selected>Depuis le début</option></select></label><button id="exportDashboardCsv" class="secondary" data-i18n="exportCsv">Exporter CSV</button></div></div>
         <div class="metrics"><div class="metric"><div class="metric-label" data-i18n="totalUnits">Unités totales</div><div class="metric-value" id="totalUnits">0</div><div class="metric-detail" id="totalUnitsDetail"></div></div><div class="metric"><div class="metric-label" data-i18n="daysTracked">Jours suivis</div><div class="metric-value" id="daysTracked">0</div><div class="metric-detail" id="daysTrackedDetail"></div></div><div class="metric"><div class="metric-label" data-i18n="dailyAverage">Moyenne journalière</div><div class="metric-value" id="dailyAverage">0</div><div class="metric-detail" id="dailyAverageDetail"></div></div><div class="metric"><div class="metric-label" data-i18n="topProduct">Meilleur produit</div><div class="metric-value" id="topProduct">—</div><div class="metric-detail" id="topProductDetail"></div></div></div>
         <div class="dashboard-grid">
           <div class="panel"><h2 data-i18n="productPerformance">Performance des produits</h2><p class="hint" data-i18n="productPerformanceHint">Unités vendues par produit.</p><div class="bars" id="performanceBars"></div></div>
@@ -106,7 +106,7 @@
     let audit = [];
     let users = [];
     let salesFilters = { year:'', month:'' };
-    let dashboardPeriod = 'current_month';
+    let dashboardPeriod = 'all';
     let capabilities = { viewGlobalDashboard:false, viewAudit:false, manageProducts:false };
     let isSaving = false;
     let toastTimer;
