@@ -2,6 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { randomUUID } from "node:crypto";
 import { createBackup, listRecoverySnapshots, readRecoverySnapshot } from "../lib/backup.mjs";
 import { canManageProducts, canViewAudit, canViewGlobalDashboard } from "../lib/permissions.mjs";
+import { listAuditRecoveryCandidates, recoverAuditEntries } from "../lib/recovery.mjs";
 import { authorizeSalesMutation, mergeStaffSales, ownsSale } from "../lib/sales-access.mjs";
 import { getSession } from "../lib/session.mjs";
 
@@ -154,7 +155,11 @@ async function handleRecovery(request, session) {
   }
 
   if (request.method === "GET") {
-    const candidates = await listRecoverySnapshots();
+    const current = await loadData(session);
+    const audit = (await store.get(auditKey(), { type: "json" })) ?? [];
+    const auditCandidates = listAuditRecoveryCandidates({ audit, products: current.products, currentEntries: current.entries })
+      .map(({ entries, ...candidate }) => candidate);
+    const candidates = [...auditCandidates, ...(await listRecoverySnapshots())];
     return Response.json({ candidates }, { headers: { "Cache-Control": "no-store" } });
   }
 
@@ -163,21 +168,29 @@ async function handleRecovery(request, session) {
   }
 
   const body = await request.json().catch(() => null);
-  const snapshot = await readRecoverySnapshot(body?.backupKey);
-  if (!snapshot) return Response.json({ error: "backup_not_found" }, { status: 404 });
-
   const current = await loadData(session);
   const existingAudit = (await store.get(auditKey(), { type: "json" })) ?? [];
+  const recoveryKey = String(body?.backupKey ?? "");
+  const auditEntries = recoveryKey.startsWith("audit:")
+    ? recoverAuditEntries({ audit: existingAudit, products: current.products, currentEntries: current.entries, key: recoveryKey })
+    : null;
+  const snapshot = auditEntries ? null : await readRecoverySnapshot(recoveryKey);
+  if (!auditEntries && !snapshot) return Response.json({ error: "backup_not_found" }, { status: 404 });
+
   try {
     await createBackup({ reason: "before_backup_restore", data: current, audit: existingAudit, session });
   } catch {
     return Response.json({ error: "backup_failed" }, { status: 503 });
   }
 
-  const restored = hydrateEntries(snapshot.data);
+  const restored = auditEntries ? {
+    products: current.products,
+    entries: [...current.entries, ...auditEntries].sort((first, second) => second.date.localeCompare(first.date))
+  } : hydrateEntries(snapshot.data);
+  const sourceCreatedAt = snapshot?.createdAt ?? recoveryKey.slice(6, 22);
   const recoveryEvent = auditEvent(session, "sales_recovered", {
-    sourceCreatedAt: snapshot.createdAt,
-    restoredEntries: restored.entries.length,
+    sourceCreatedAt,
+    restoredEntries: auditEntries?.length ?? restored.entries.length,
     restoredProducts: restored.products
   });
   const audit = [recoveryEvent, ...existingAudit].slice(0, 500);
