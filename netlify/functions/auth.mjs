@@ -174,7 +174,10 @@ async function setUserAccess(body, session) {
   if (match.user.role === roles.superadmin) {
     return Response.json({ error: "superadmin_protected" }, { status: 400, headers: jsonHeaders });
   }
-  if (!canChangeAccess(session, match.user.role)) {
+  if (!canChangeAccess(session, match.user.role, {
+    nextActive: active,
+    accessUpdatedByRole: match.user.accessUpdatedByRole
+  })) {
     return Response.json({ error: "admin_target_protected" }, { status: 403, headers: jsonHeaders });
   }
 
@@ -182,7 +185,8 @@ async function setUserAccess(body, session) {
     ...match.user,
     active,
     accessUpdatedAt: new Date().toISOString(),
-    accessUpdatedBy: session.userId
+    accessUpdatedBy: session.userId,
+    accessUpdatedByRole: session.role
   };
   await authStore.setJSON(userKey(match.email), user);
   return Response.json({ user: publicUser(user) }, { headers: jsonHeaders });
@@ -270,4 +274,3 @@ export default async (request) => {
     { headers: { ...jsonHeaders, "Set-Cookie": createSessionCookie(token) } }
   );
 };
-

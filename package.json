@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
+    "test": "node --preserve-symlinks --preserve-symlinks-main --test tests/*.test.mjs",
     "android:bundle": "powershell -ExecutionPolicy Bypass -File android/scripts/build-release.ps1",
     "android:debug": "powershell -ExecutionPolicy Bypass -File android/scripts/build-debug.ps1"
   },

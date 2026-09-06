@@ -1,6 +1,8 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "node:crypto";
 import { createBackup } from "../lib/backup.mjs";
+import { canManageProducts, canViewAudit, canViewGlobalDashboard } from "../lib/permissions.mjs";
+import { authorizeSalesMutation, mergeStaffSales, ownsSale } from "../lib/sales-access.mjs";
 import { getSession } from "../lib/session.mjs";
 
 const store = getStore("daily-sales-tracker");
@@ -35,15 +37,35 @@ function auditEvent(session, action, details) {
   };
 }
 
-function hydrateEntries(data, session) {
+function hydrateEntries(data, fallbackActor = { id: "legacy", name: "Historical import", email: "" }) {
   return {
     ...data,
     entries: data.entries.map((entry) => ({
       ...entry,
-      createdBy: entry.createdBy ?? sessionActor(session),
+      createdBy: entry.createdBy ?? fallbackActor,
       createdAt: entry.createdAt ?? `${entry.date}T00:00:00.000Z`
     }))
   };
+}
+
+function clientPayload(data, audit, session) {
+  const globalAccess = canViewGlobalDashboard(session);
+  return {
+    products: data.products,
+    entries: globalAccess ? data.entries : data.entries.filter((entry) => ownsSale(session, entry)),
+    audit: canViewAudit(session) ? audit : [],
+    capabilities: {
+      viewGlobalDashboard: globalAccess,
+      viewAudit: canViewAudit(session),
+      manageProducts: canManageProducts(session)
+    }
+  };
+}
+
+function validDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 function alignUnits(previousProducts, nextProducts, units) {
@@ -60,12 +82,12 @@ function alignUnits(previousProducts, nextProducts, units) {
 
 async function loadData(session) {
   const existing = await store.get(dataKey(), { type: "json" });
-  if (existing) return hydrateEntries(existing, session);
+  if (existing) return hydrateEntries(existing);
 
   const personal = await store.get(`sales:${session.userId}`, { type: "json" });
   const migrationOwner = await store.get("legacy-migration-owner", { type: "text" });
   const legacy = !migrationOwner ? await store.get("sales-data", { type: "json" }) : null;
-  const initial = hydrateEntries(personal ?? legacy ?? defaultData, session);
+  const initial = hydrateEntries(personal ?? legacy ?? defaultData, sessionActor(session));
   const sharedAudit = await store.get(auditKey(), { type: "json" });
   const personalAudit = await store.get(`audit:${session.userId}`, { type: "json" });
   if (personal || legacy) {
@@ -133,7 +155,7 @@ export default async (request) => {
   if (request.method === "GET") {
     const data = await loadData(session);
     const audit = (await store.get(auditKey(), { type: "json" })) ?? [];
-    return Response.json({ ...data, audit }, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(clientPayload(data, audit, session), { headers: { "Cache-Control": "no-store" } });
   }
 
   if (request.method !== "PUT") {
@@ -142,23 +164,28 @@ export default async (request) => {
 
   const next = await request.json().catch(() => null);
   const productCount = Array.isArray(next?.products) ? next.products.length : 0;
+  const dates = Array.isArray(next?.entries) ? next.entries.map((entry) => entry?.date) : [];
   const valid = productCount >= 1
     && productCount <= 50
     && next.products.every((name) => typeof name === "string" && name.trim().length > 0 && name.trim().length <= 120)
     && Array.isArray(next?.entries)
-    && next.entries.every((entry) => /^\d{4}-\d{2}-\d{2}$/.test(entry?.date)
+    && next.entries.length <= 10000
+    && new Set(dates).size === dates.length
+    && next.entries.every((entry) => validDate(entry?.date)
       && Array.isArray(entry.units)
       && entry.units.length === productCount
-      && entry.units.every((value) => Number.isFinite(Number(value)) && Number(value) >= 0));
+      && entry.units.every((value) => Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 1000000000));
   if (!valid) return Response.json({ error: "invalid_sales_data" }, { status: 400 });
 
   const previous = await loadData(session);
   const products = next.products.map((name) => name.trim());
+  const policyError = authorizeSalesMutation({ session, previous, products, entries: next.entries });
+  if (policyError) return Response.json({ error: policyError }, { status: 403 });
   const previousEntries = new Map(previous.entries.map((entry) => [entry.date, entry]));
   const timestamp = new Date().toISOString();
   const normalized = {
     products,
-    entries: next.entries.map((entry) => {
+    entries: canViewGlobalDashboard(session) ? next.entries.map((entry) => {
       const oldEntry = previousEntries.get(entry.date);
       const units = entry.units.map(Number);
       const changed = oldEntry
@@ -172,6 +199,11 @@ export default async (request) => {
         ...(oldEntry?.updatedAt ? { updatedAt: oldEntry.updatedAt } : {}),
         ...(changed ? { updatedBy: sessionActor(session), updatedAt: timestamp } : {})
       };
+    }).sort((first, second) => second.date.localeCompare(first.date)) : mergeStaffSales({
+      session,
+      previous,
+      entries: next.entries,
+      timestamp
     })
   };
   const newEvents = buildAudit(previous, normalized, session);
@@ -193,6 +225,5 @@ export default async (request) => {
 
   await store.setJSON(dataKey(), normalized);
   await store.setJSON(auditKey(), audit);
-  return Response.json({ ...normalized, audit });
+  return Response.json(clientPayload(normalized, audit, session));
 };
-
