@@ -1,6 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "node:crypto";
-import { createBackup } from "../lib/backup.mjs";
+import { createBackup, listRecoverySnapshots, readRecoverySnapshot } from "../lib/backup.mjs";
 import { canManageProducts, canViewAudit, canViewGlobalDashboard } from "../lib/permissions.mjs";
 import { authorizeSalesMutation, mergeStaffSales, ownsSale } from "../lib/sales-access.mjs";
 import { getSession } from "../lib/session.mjs";
@@ -148,9 +148,50 @@ function buildAudit(previous, next, session) {
   return events;
 }
 
+async function handleRecovery(request, session) {
+  if (!canManageProducts(session)) {
+    return Response.json({ error: "forbidden" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (request.method === "GET") {
+    const candidates = await listRecoverySnapshots();
+    return Response.json({ candidates }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (request.method !== "POST") {
+    return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, POST" } });
+  }
+
+  const body = await request.json().catch(() => null);
+  const snapshot = await readRecoverySnapshot(body?.backupKey);
+  if (!snapshot) return Response.json({ error: "backup_not_found" }, { status: 404 });
+
+  const current = await loadData(session);
+  const existingAudit = (await store.get(auditKey(), { type: "json" })) ?? [];
+  try {
+    await createBackup({ reason: "before_backup_restore", data: current, audit: existingAudit, session });
+  } catch {
+    return Response.json({ error: "backup_failed" }, { status: 503 });
+  }
+
+  const restored = hydrateEntries(snapshot.data);
+  const recoveryEvent = auditEvent(session, "sales_recovered", {
+    sourceCreatedAt: snapshot.createdAt,
+    restoredEntries: restored.entries.length,
+    restoredProducts: restored.products
+  });
+  const audit = [recoveryEvent, ...existingAudit].slice(0, 500);
+  await store.setJSON(dataKey(), restored);
+  await store.setJSON(auditKey(), audit);
+  return Response.json(clientPayload(restored, audit, session));
+}
+
 export default async (request) => {
   const session = await getSession(request);
   if (!session) return Response.json({ error: "unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+
+  const url = new URL(request.url);
+  if (url.searchParams.get("recovery") === "1") return handleRecovery(request, session);
 
   if (request.method === "GET") {
     const data = await loadData(session);
