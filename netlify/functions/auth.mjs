@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
-import { applicationRoles, assignableRoles, canChangeAccess, canChangeRole, canCreateUsers, canViewUsers, roles } from "../lib/permissions.mjs";
+import { appendAuthenticationEvent, listAuthenticationEvents } from "../lib/auth-audit.mjs";
+import { applicationRoles, assignableRoles, canChangeAccess, canChangeRole, canCreateUsers, canViewAudit, canViewUsers, roles } from "../lib/permissions.mjs";
 import { authStore, clearSessionCookie, createSessionCookie, getSession } from "../lib/session.mjs";
 
 const jsonHeaders = { "Cache-Control": "no-store", "Content-Type": "application/json" };
@@ -147,6 +148,7 @@ async function bootstrapSuperAdmin(body) {
 
   const { token, session } = createSession(user);
   await authStore.setJSON(`session:${token}`, session);
+  await appendAuthenticationEvent(authStore, user, "user_login").catch(() => {});
   return Response.json(
     { user: publicUser(user) },
     { status: 201, headers: { ...jsonHeaders, "Set-Cookie": createSessionCookie(token) } }
@@ -227,6 +229,10 @@ export default async (request) => {
 
   if (request.method === "GET") {
     const session = await getSession(request);
+    if (url.searchParams.get("audit") === "1") {
+      if (!canViewAudit(session)) return Response.json({ error: "forbidden" }, { status: 403, headers: jsonHeaders });
+      return Response.json({ audit: await listAuthenticationEvents(authStore) }, { headers: jsonHeaders });
+    }
     if (url.searchParams.get("users") === "1") return listUsers(session);
     if (!session) return Response.json({ error: "unauthorized" }, { status: 401, headers: jsonHeaders });
     return Response.json({ user: publicUser(session) }, { headers: jsonHeaders });
@@ -234,7 +240,10 @@ export default async (request) => {
 
   if (request.method === "DELETE") {
     const session = await getSession(request);
-    if (session) await authStore.delete(`session:${session.token}`);
+    if (session) {
+      await appendAuthenticationEvent(authStore, session, "user_logout").catch(() => {});
+      await authStore.delete(`session:${session.token}`);
+    }
     return new Response(null, { status: 204, headers: { "Set-Cookie": clearSessionCookie(), "Cache-Control": "no-store" } });
   }
 
@@ -269,6 +278,7 @@ export default async (request) => {
 
   const { token, session } = createSession(user);
   await authStore.setJSON(`session:${token}`, session);
+  await appendAuthenticationEvent(authStore, user, "user_login").catch(() => {});
   return Response.json(
     { user: publicUser(user) },
     { headers: { ...jsonHeaders, "Set-Cookie": createSessionCookie(token) } }

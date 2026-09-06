@@ -113,6 +113,7 @@
     let currentUser = null;
     let state = structuredClone(defaultState);
     let audit = [];
+    let authenticationAudit = [];
     let users = [];
     let recoveryCandidates = [];
     const activeViewStorageKey = 'sales-active-view';
@@ -146,6 +147,8 @@
     Object.assign(translations.en,{salesRecovery:'Sales recovery',salesRecoveryHint:'Restore a backup or a bulk deletion detected in the audit trail.',salesCount:'Sales',restoreBackup:'Restore',emptyBackups:'No recovery source containing sales.',confirmRestoreBackup:'Restore {count} sale(s) from this source? A safety copy will be created before restoration.',salesRecovered:'{count} sale(s) restored.',backup_not_found:'This recovery source is missing or invalid.',sales_recovered:'Sales restored',recoveryDetail:'{count} sale(s) recovered from the {date} source.',audit_deleted_batch:'Bulk deletion detected in the audit trail',before_sales_update:'Backup before update',before_product_structure_update:'Backup before product update'});
     Object.assign(translations.fr,{offlineMode:'Hors ligne · données locales disponibles',offlinePending:'Hors ligne · {count} modification(s) en attente',syncingPending:'Synchronisation de {count} modification(s)…',syncComplete:'Synchronisation terminée',syncFailed:'Synchronisation interrompue · {count} modification(s) en attente',syncConflict:'Synchronisation suspendue : les produits ont changé sur le serveur.',retrySync:'Réessayer',savedLocally:'Vente enregistrée localement. Elle sera synchronisée automatiquement.',offlineRestricted:'Cette action nécessite une connexion.',pendingSync:'En attente de synchronisation',previousPage:'Précédent',nextPage:'Suivant',pageStatus:'Page {page} sur {total}'});
     Object.assign(translations.en,{offlineMode:'Offline · local data available',offlinePending:'Offline · {count} pending change(s)',syncingPending:'Synchronizing {count} change(s)…',syncComplete:'Synchronization complete',syncFailed:'Synchronization interrupted · {count} pending change(s)',syncConflict:'Synchronization paused: products changed on the server.',retrySync:'Retry',savedLocally:'Sale saved locally. It will synchronize automatically.',offlineRestricted:'This action requires a connection.',pendingSync:'Pending synchronization',previousPage:'Previous',nextPage:'Next',pageStatus:'Page {page} of {total}'});
+    Object.assign(translations.fr,{auditHint:'Journal horodaté des connexions, déconnexions, créations, modifications et suppressions.',user_login:'Connexion',user_logout:'Déconnexion',loginAuditDetail:'Session utilisateur ouverte.',logoutAuditDetail:'Session utilisateur fermée.'});
+    Object.assign(translations.en,{auditHint:'Timestamped log of sign-ins, sign-outs, creations, updates and deletions.',user_login:'Sign-in',user_logout:'Sign-out',loginAuditDetail:'User session opened.',logoutAuditDetail:'User session closed.'});
 
     function t(key, values={}) { let value = translations[language][key] ?? key; Object.entries(values).forEach(([name,replacement]) => value = value.replace(`{${name}}`,replacement)); return value; }
     function escapeHTML(value){ const node=document.createElement('div'); node.textContent=String(value); return node.innerHTML; }
@@ -168,6 +171,12 @@
     }
     function renderCachedSnapshot(snapshot){
       state=snapshot.state; audit=snapshot.audit??[]; applyCapabilities(snapshot.capabilities??roleCapabilities(snapshot.user)); renderEntry(); renderDashboard(); renderAudit(); restorePreferredView();
+    }
+    function mergeAuditEvents(salesEvents){ const events=[...salesEvents,...authenticationAudit]; const seen=new Set(); return events.filter(event=>event?.id&&!seen.has(event.id)&&seen.add(event.id)).sort((first,second)=>String(second.timestamp).localeCompare(String(first.timestamp))); }
+    async function loadAuthenticationAudit(){
+      if(!capabilities.viewAudit)return;
+      try { const response=await fetch(`${authEndpoint}?audit=1`,{credentials:'same-origin'}); if(!response.ok)return; const payload=await response.json(); authenticationAudit=payload.audit??[]; audit=mergeAuditEvents(audit.filter(event=>event.category!=='authentication')); }
+      catch {}
     }
 
     function applyLanguage(){
@@ -220,11 +229,11 @@
       finally { $('#authSubmit').disabled=false; }
     }
 
-    async function logout(){ const userId=currentUser?.id; await fetch(authEndpoint,{method:'DELETE',credentials:'same-origin'}).catch(()=>{}); clearOfflineSession(userId); state=structuredClone(defaultState); audit=[]; showAuth(); }
+    async function logout(){ const userId=currentUser?.id; await fetch(authEndpoint,{method:'DELETE',credentials:'same-origin'}).catch(()=>{}); clearOfflineSession(userId); state=structuredClone(defaultState); audit=[]; authenticationAudit=[]; showAuth(); }
 
     async function loadSales(){
       setSync('saving');
-      try { const response=await fetch(salesEndpoint,{credentials:'same-origin'}); if(response.status===401){clearOfflineSession(currentUser?.id);return showAuth();} if(!response.ok) throw new Error(); const payload=await response.json(); state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); renderEntry(); renderDashboard(); renderAudit(); restorePreferredView(); cacheCurrentState(); if(pendingSales().length)await synchronizePendingSales();else hideConnectionState(); }
+      try { const response=await fetch(salesEndpoint,{credentials:'same-origin'}); if(response.status===401){clearOfflineSession(currentUser?.id);return showAuth();} if(!response.ok) throw new Error(); const payload=await response.json(); state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); await loadAuthenticationAudit(); renderEntry(); renderDashboard(); renderAudit(); restorePreferredView(); cacheCurrentState(); if(pendingSales().length)await synchronizePendingSales();else hideConnectionState(); }
       catch { const cached=loadOfflineSnapshot(); if(cached?.user?.id===currentUser?.id)renderCachedSnapshot(cached); setOfflineState(); }
     }
 
@@ -240,7 +249,7 @@
       isSaving=true; $('#saveBtn').disabled=true;
       setSync('saving');
       let reachedServer=false;
-      try { const response=await fetch(salesEndpoint,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(nextState)}); reachedServer=true; if(response.status===401){clearOfflineSession(currentUser?.id);return showAuth();} const payload=await response.json().catch(()=>({})); if(!response.ok){showToast(t(payload.error||'saveError'));setSync('saveError');return false;} state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); renderDashboard(); renderAudit(); renderMySales(); cacheCurrentState(); hideConnectionState(); return true; }
+      try { const response=await fetch(salesEndpoint,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(nextState)}); reachedServer=true; if(response.status===401){clearOfflineSession(currentUser?.id);return showAuth();} const payload=await response.json().catch(()=>({})); if(!response.ok){showToast(t(payload.error||'saveError'));setSync('saveError');return false;} state={products:payload.products,entries:payload.entries}; audit=mergeAuditEvents(payload.audit??[]); applyCapabilities(payload.capabilities); renderDashboard(); renderAudit(); renderMySales(); cacheCurrentState(); hideConnectionState(); return true; }
       catch { if(!reachedServer&&offlineMutation)return saveOfflineDraft(nextState,offlineMutation); setSync('saveError'); return false; }
       finally { isSaving=false; $('#saveBtn').disabled=false; }
     }
@@ -256,7 +265,7 @@
           if(JSON.stringify(latest.products)!==JSON.stringify(mutation.products))throw new Error('product_conflict');
           const draft={products:latest.products,entries:structuredClone(latest.entries)}; const existing=draft.entries.findIndex(entry=>entry.date===mutation.date); const entry={date:mutation.date,units:mutation.units}; if(existing>=0)draft.entries[existing]=entry;else draft.entries.push(entry); draft.entries.sort((a,b)=>b.date.localeCompare(a.date));
           const saveResponse=await fetch(salesEndpoint,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(draft)}); const payload=await saveResponse.json().catch(()=>({})); if(!saveResponse.ok)throw new Error(payload.error||'network');
-          removePendingSale(currentUser.id,mutation.id); state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); cacheCurrentState();
+          removePendingSale(currentUser.id,mutation.id); state={products:payload.products,entries:payload.entries}; audit=mergeAuditEvents(payload.audit??[]); applyCapabilities(payload.capabilities); cacheCurrentState();
         }
         renderEntry(); renderDashboard(); renderAudit(); showConnectionState('syncing','syncComplete'); setTimeout(()=>{if(!pendingSales().length)hideConnectionState();},1800);
       } catch(error){ showConnectionState('error',error.message==='product_conflict'?'syncConflict':'syncFailed',{count:pendingSales().length}); }
@@ -367,7 +376,7 @@
       const csv='\ufeff'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n'); const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); const link=document.createElement('a'); link.href=url; link.download=`suivi-ventes-${dashboardPeriod}-${new Date().toISOString().slice(0,10)}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(url),0);
     }
 
-    function auditDetails(event){ if(event.action==='products_updated')return t('productNamesChanged'); if(event.action==='product_added'||event.action==='product_removed')return t('productDetail',{product:event.product||'—'}); if(event.action==='sales_recovered')return t('recoveryDetail',{count:event.restoredEntries,date:formatTimestamp(event.sourceCreatedAt)}); const date=event.date?`${t('forDate',{date:formatDate(event.date)})} · `:''; return `${date}${t('totalDetail',{total:Number(event.total||0).toLocaleString(locale())})}`; }
+    function auditDetails(event){ if(event.action==='user_login')return t('loginAuditDetail'); if(event.action==='user_logout')return t('logoutAuditDetail'); if(event.action==='products_updated')return t('productNamesChanged'); if(event.action==='product_added'||event.action==='product_removed')return t('productDetail',{product:event.product||'—'}); if(event.action==='sales_recovered')return t('recoveryDetail',{count:event.restoredEntries,date:formatTimestamp(event.sourceCreatedAt)}); const date=event.date?`${t('forDate',{date:formatDate(event.date)})} · `:''; return `${date}${t('totalDetail',{total:Number(event.total||0).toLocaleString(locale())})}`; }
     function renderAudit(){ const page=paginate(audit,auditPage,auditPageSize); auditPage=page.currentPage; $('#auditBody').innerHTML=page.items.length?page.items.map(event=>`<tr><td>${formatTimestamp(event.timestamp)}</td><td>${escapeHTML(event.actor?.name||'—')}<div class="audit-detail">${escapeHTML(event.actor?.email||'')}</div></td><td class="audit-action">${t(event.action)}</td><td class="audit-detail">${escapeHTML(auditDetails(event))}</td></tr>`).join(''):`<tr><td colspan="4" class="empty">${t('emptyAudit')}</td></tr>`; $('#auditPagination').innerHTML=paginationHTML(page,'audit'); }
 
     async function loadRecovery(){
@@ -382,7 +391,7 @@
     async function restoreBackup(backupKey){
       const candidate=recoveryCandidates.find(item=>item.key===backupKey); if(!candidate||!confirm(t('confirmRestoreBackup',{count:candidate.entryCount})))return;
       $('#recoveryMessage').textContent='';
-      try { const response=await fetch(`${salesEndpoint}?recovery=1`,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({backupKey})}); const payload=await response.json(); if(!response.ok){$('#recoveryMessage').textContent=t(payload.error);return;} state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; renderEntry(); renderDashboard(); renderAudit(); showToast(t('salesRecovered',{count:state.entries.length})); await loadRecovery(); }
+      try { const response=await fetch(`${salesEndpoint}?recovery=1`,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({backupKey})}); const payload=await response.json(); if(!response.ok){$('#recoveryMessage').textContent=t(payload.error);return;} state={products:payload.products,entries:payload.entries}; audit=mergeAuditEvents(payload.audit??[]); renderEntry(); renderDashboard(); renderAudit(); showToast(t('salesRecovered',{count:state.entries.length})); await loadRecovery(); }
       catch { $('#recoveryMessage').textContent=t('network_error'); }
     }
 

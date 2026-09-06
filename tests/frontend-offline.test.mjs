@@ -31,3 +31,10 @@ test('history views use bounded pagination', () => {
 test('offline snapshots are cleared after an authoritative unauthorized response', () => {
   assert.match(html, /response\.status===401\)\{clearOfflineSession\(currentUser\?\.id\);return showAuth\(\);\}/);
 });
+
+test('authentication events are merged into the visible audit trail', () => {
+  assert.match(html, /fetch\(`\$\{authEndpoint\}\?audit=1`/);
+  assert.match(html, /function mergeAuditEvents\(salesEvents\)/);
+  assert.match(html, /event\.action==='user_login'/);
+  assert.match(html, /event\.action==='user_logout'/);
+});
