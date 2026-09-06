@@ -1,5 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
+export const sessionDurationMs = 24 * 60 * 60 * 1000;
+
 export function normalizeDeviceId(value) {
   const deviceId = String(value ?? "").trim();
   return /^[a-zA-Z0-9_-]{16,128}$/.test(deviceId) ? deviceId : randomUUID();
@@ -18,6 +20,7 @@ export function deviceSessionKey(userId, deviceId) {
 export function createDeviceSession(user, device = {}) {
   const token = randomBytes(32).toString("hex");
   const deviceId = normalizeDeviceId(device.id);
+  const issuedAt = Date.now();
   return {
     token,
     session: {
@@ -27,7 +30,8 @@ export function createDeviceSession(user, device = {}) {
       role: user.role ?? "staff",
       deviceId,
       deviceLabel: normalizeDeviceLabel(device.label),
-      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
+      issuedAt,
+      expiresAt: issuedAt + sessionDurationMs
     }
   };
 }

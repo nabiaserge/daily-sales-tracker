@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import { applicationRoles } from "./permissions.mjs";
-import { deviceSessionKey } from "./device-session.mjs";
+import { deviceSessionKey, sessionDurationMs } from "./device-session.mjs";
 
 const authStore = getStore("daily-sales-auth");
 const sessionCookie = "sales_session";
@@ -17,7 +17,10 @@ export async function getSession(request) {
   if (!token) return null;
 
   const session = await authStore.get(`session:${token}`, { type: "json" });
-  if (!session || session.expiresAt < Date.now() || !applicationRoles.includes(session.role)) {
+  const legacySessionDurationMs = 7 * 24 * 60 * 60 * 1000;
+  const issuedAt = Number(session?.issuedAt) || Number(session?.expiresAt) - legacySessionDurationMs;
+  const effectiveExpiry = Math.min(Number(session?.expiresAt) || 0, issuedAt + sessionDurationMs);
+  if (!session || effectiveExpiry < Date.now() || !applicationRoles.includes(session.role)) {
     if (session) await authStore.delete(`session:${token}`);
     return null;
   }
@@ -41,7 +44,7 @@ export async function getSession(request) {
 }
 
 export function createSessionCookie(token) {
-  return `${sessionCookie}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`;
+  return `${sessionCookie}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`;
 }
 
 export function clearSessionCookie() {

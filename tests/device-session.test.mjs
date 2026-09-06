@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activateDeviceSession, closeDeviceSession, createDeviceSession, deviceSessionKey } from "../netlify/lib/device-session.mjs";
+import { activateDeviceSession, closeDeviceSession, createDeviceSession, deviceSessionKey, sessionDurationMs } from "../netlify/lib/device-session.mjs";
 
 function memoryStore() {
   const values = new Map();
@@ -23,6 +23,12 @@ test("different devices keep independent sessions", async () => {
   await activateDeviceSession(store, computer.token, computer.session);
   assert.ok(store.values.has(`session:${phone.token}`));
   assert.ok(store.values.has(`session:${computer.token}`));
+});
+
+test("new sessions expire after 24 hours", () => {
+  const { session } = createDeviceSession(user, { id:"device-phone-0001", label:"Android · 0001" });
+  assert.equal(sessionDurationMs, 24 * 60 * 60 * 1000);
+  assert.equal(session.expiresAt - session.issuedAt, sessionDurationMs);
 });
 
 test("a new login replaces only the previous session on the same device", async () => {
