@@ -31,3 +31,11 @@ test("authentication audit retains the latest 500 events", async () => {
   assert.equal(events[0].action, "user_login");
   assert.equal(events.some((event) => event.id === "event-499"), false);
 });
+
+test("authentication events identify the device without exposing its session token", async () => {
+  const store = memoryStore();
+  await appendAuthenticationEvent(store, { userId:"user-1", name:"Alice", email:"alice@example.com", deviceId:"device-phone-0001", deviceLabel:"Android · 0001", token:"secret" }, "user_login");
+  const [event] = await listAuthenticationEvents(store);
+  assert.deepEqual(event.device, { id:"device-phone-0001", label:"Android · 0001" });
+  assert.equal("token" in event, false);
+});

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 export const authenticationAuditKey = "audit:authentication";
 
 export function createAuthenticationEvent(user, action, timestamp = new Date().toISOString()) {
-  return {
+  const event = {
     id: randomUUID(),
     timestamp,
     category: "authentication",
@@ -14,6 +14,8 @@ export function createAuthenticationEvent(user, action, timestamp = new Date().t
       email: user.email
     }
   };
+  if (user.deviceId) event.device = { id: user.deviceId, label: user.deviceLabel ?? "Appareil web" };
+  return event;
 }
 
 export async function appendAuthenticationEvent(store, user, action) {

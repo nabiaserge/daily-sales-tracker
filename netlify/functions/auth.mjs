@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { appendAuthenticationEvent, listAuthenticationEvents } from "../lib/auth-audit.mjs";
+import { activateDeviceSession, closeDeviceSession, createDeviceSession } from "../lib/device-session.mjs";
 import { applicationRoles, assignableRoles, canChangeAccess, canChangeRole, canCreateUsers, canViewAudit, canViewUsers, roles } from "../lib/permissions.mjs";
 import { authStore, clearSessionCookie, createSessionCookie, getSession } from "../lib/session.mjs";
 
@@ -19,20 +20,6 @@ function publicUser(user) {
     role: user.role ?? "staff",
     active: user.active !== false,
     createdAt: user.createdAt
-  };
-}
-
-function createSession(user) {
-  const token = randomBytes(32).toString("hex");
-  return {
-    token,
-    session: {
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role ?? "staff",
-      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
-    }
   };
 }
 
@@ -146,9 +133,9 @@ async function bootstrapSuperAdmin(body) {
   await addToUserIndex(email);
   await authStore.set(superAdminKey, user.id);
 
-  const { token, session } = createSession(user);
-  await authStore.setJSON(`session:${token}`, session);
-  await appendAuthenticationEvent(authStore, user, "user_login").catch(() => {});
+  const { token, session } = createDeviceSession(user, { id:body.deviceId, label:body.deviceLabel });
+  await activateDeviceSession(authStore, token, session);
+  await appendAuthenticationEvent(authStore, session, "user_login").catch(() => {});
   return Response.json(
     { user: publicUser(user) },
     { status: 201, headers: { ...jsonHeaders, "Set-Cookie": createSessionCookie(token) } }
@@ -242,7 +229,7 @@ export default async (request) => {
     const session = await getSession(request);
     if (session) {
       await appendAuthenticationEvent(authStore, session, "user_logout").catch(() => {});
-      await authStore.delete(`session:${session.token}`);
+      await closeDeviceSession(authStore, session);
     }
     return new Response(null, { status: 204, headers: { "Set-Cookie": clearSessionCookie(), "Cache-Control": "no-store" } });
   }
@@ -276,9 +263,9 @@ export default async (request) => {
     return Response.json({ error: "login_failed" }, { status: 401, headers: jsonHeaders });
   }
 
-  const { token, session } = createSession(user);
-  await authStore.setJSON(`session:${token}`, session);
-  await appendAuthenticationEvent(authStore, user, "user_login").catch(() => {});
+  const { token, session } = createDeviceSession(user, { id:body.deviceId, label:body.deviceLabel });
+  await activateDeviceSession(authStore, token, session);
+  await appendAuthenticationEvent(authStore, session, "user_login").catch(() => {});
   return Response.json(
     { user: publicUser(user) },
     { headers: { ...jsonHeaders, "Set-Cookie": createSessionCookie(token) } }

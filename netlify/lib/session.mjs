@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import { applicationRoles } from "./permissions.mjs";
+import { deviceSessionKey } from "./device-session.mjs";
 
 const authStore = getStore("daily-sales-auth");
 const sessionCookie = "sales_session";
@@ -19,6 +20,14 @@ export async function getSession(request) {
   if (!session || session.expiresAt < Date.now() || !applicationRoles.includes(session.role)) {
     if (session) await authStore.delete(`session:${token}`);
     return null;
+  }
+
+  if (session.deviceId) {
+    const activeToken = await authStore.get(deviceSessionKey(session.userId, session.deviceId), { type: "text" });
+    if (activeToken !== token) {
+      await authStore.delete(`session:${token}`);
+      return null;
+    }
   }
 
   const accountKey = `user:${createHash("sha256").update(session.email).digest("hex")}`;
@@ -40,4 +49,3 @@ export function clearSessionCookie() {
 }
 
 export { authStore };
-

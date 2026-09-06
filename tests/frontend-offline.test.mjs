@@ -38,3 +38,9 @@ test('authentication events are merged into the visible audit trail', () => {
   assert.match(html, /event\.action==='user_login'/);
   assert.match(html, /event\.action==='user_logout'/);
 });
+
+test('authentication sends a stable local device identity', () => {
+  assert.match(html, /const deviceStorageKey = 'sales-device-id';/);
+  assert.match(html, /deviceId,deviceLabel/);
+  assert.match(html, /Session ouverte sur \{device\}/);
+});
