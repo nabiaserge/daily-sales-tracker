@@ -17,14 +17,15 @@
     .auth-wrap,.boot-screen { min-height:70vh; display:grid; place-items:center; } .boot-content { display:grid; justify-items:center; gap:10px; color:var(--muted); font-weight:800; } .boot-content .brand-mark { margin:0; } .auth-card { width:min(440px,100%); } .brand-mark { display:inline-grid; place-items:center; width:42px; height:42px; border-radius:13px; color:#fff; background:var(--teal); font-weight:900; margin-bottom:18px; } .auth-fields { display:grid; gap:14px; margin-top:22px; } label { display:grid; gap:7px; color:var(--muted); font-size:.83rem; font-weight:750; } input,.auth-fields select { width:100%; border:1px solid var(--line); border-radius:10px; padding:11px 12px; color:var(--ink); background:#fff; } input:focus,select:focus { outline:3px solid rgba(15,118,110,.17); border-color:var(--teal); }
     .primary,.secondary,.ghost { border:0; border-radius:10px; padding:11px 15px; font-weight:800; } .primary { color:#fff; background:var(--teal); } .primary:hover { background:var(--teal-dark); } .secondary { color:var(--ink); background:#edf2f1; } .ghost { color:var(--teal); background:transparent; padding-inline:4px; } .btn-block { width:100%; margin-top:6px; } .auth-switch,.privacy-link { margin:18px 0 0; text-align:center; color:var(--muted); } .privacy-link { display:block; font-size:.82rem; color:var(--teal); text-decoration:none; } .privacy-link:hover { text-decoration:underline; } .message { min-height:22px; margin:12px 0 0; color:#b33f51; font-size:.9rem; }
     .app-header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:28px; } .user-area { display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:flex-end; } .user-chip { padding:9px 12px; border-radius:999px; color:var(--teal-dark); background:var(--teal-soft); font-size:.86rem; font-weight:800; } .sync { color:var(--muted); font-size:.8rem; }
+    .connection-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 18px; padding:11px 14px; border:1px solid #ecd48b; border-radius:12px; color:#765512; background:#fff8dc; font-size:.86rem; font-weight:750; } .connection-banner.error { color:#9f3043; border-color:#f3b8c3; background:#fff0f3; } .connection-banner.syncing { color:var(--teal-dark); border-color:#a6ddd1; background:var(--teal-soft); } .connection-banner button { min-height:34px; padding:6px 10px; }
     .tabs { display:flex; gap:8px; margin-bottom:24px; border-bottom:1px solid var(--line); overflow-x:auto; scrollbar-width:none; } .tabs::-webkit-scrollbar { display:none; } .tab { border:0; background:transparent; color:var(--muted); padding:12px 14px; font-weight:750; white-space:nowrap; border-bottom:3px solid transparent; } .tab.active { color:var(--teal); border-color:var(--teal); } .view { display:none; } .view.active { display:block; animation:view-in .18s ease-out; } @keyframes view-in { from { opacity:.55; transform:translateY(5px); } to { opacity:1; transform:none; } }
     .entry-layout { display:grid; grid-template-columns:1.35fr .65fr; gap:24px; } .date-row { display:flex; gap:12px; align-items:end; margin-bottom:22px; } .product-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; } .product-grid { display:grid; gap:11px; } .product-row { display:grid; grid-template-columns:minmax(140px,1fr) 120px auto; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid var(--line); } .product-row.readonly { grid-template-columns:minmax(140px,1fr) 120px; } .product-row:last-child { border-bottom:0; } .product-name { border:0; padding:4px; border-radius:5px; font-weight:750; font-size:1rem; } .product-name:hover { background:var(--paper); } .product-label { padding:4px; } .product-row input[type=number] { text-align:right; font-weight:750; } .remove-product { width:34px; height:34px; border:0; border-radius:9px; color:#b33f51; background:#fde8ec; font-size:1.2rem; font-weight:850; line-height:1; } .remove-product:disabled { opacity:.35; cursor:not-allowed; } .actions { display:flex; gap:10px; margin-top:22px; flex-wrap:wrap; } .staff-history { margin-top:24px; }
     .quick-total { display:grid; align-content:start; gap:18px; } .big { font-size:2.8rem; font-weight:850; letter-spacing:-.06em; margin:2px 0; } .mini-list { display:grid; gap:12px; } .mini { display:flex; justify-content:space-between; gap:10px; padding-top:12px; border-top:1px solid var(--line); font-size:.9rem; } .mini span:last-child { font-weight:800; }
     .dashboard-toolbar { display:flex; justify-content:space-between; align-items:end; gap:18px; margin-bottom:18px; padding:18px 20px; } .dashboard-toolbar .hint { margin:4px 0 0; } .dashboard-actions { display:flex; align-items:end; gap:10px; flex-wrap:wrap; } .dashboard-actions label { min-width:190px; } .dashboard-actions select { border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--ink); background:#fff; } .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:24px; } .metric { padding:18px; } .metric-label { color:var(--muted); font-size:.8rem; font-weight:750; } .metric-value { font-size:1.7rem; font-weight:850; letter-spacing:-.045em; margin-top:7px; } .metric-detail { color:var(--muted); font-size:.78rem; margin-top:5px; } .metric-detail.positive { color:#13845d; } .metric-detail.negative { color:#b33f51; } .dashboard-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; } .full { grid-column:1/-1; }
     .bars { display:grid; gap:17px; margin-top:20px; } .bar-head { display:flex; justify-content:space-between; gap:15px; font-size:.9rem; margin-bottom:7px; } .track { height:10px; border-radius:9px; background:#e9efed; overflow:hidden; } .fill { height:100%; border-radius:9px; background:var(--teal); } .fill.b { background:var(--gold); } .fill.c { background:var(--blue); } .fill.d { background:var(--rose); }
-    .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; } table { width:100%; border-collapse:collapse; margin-top:10px; } th,td { padding:12px 8px; text-align:left; border-bottom:1px solid var(--line); font-size:.88rem; } th { color:var(--muted); font-size:.73rem; text-transform:uppercase; letter-spacing:.055em; } th:not(:first-child),td:not(:first-child) { text-align:right; } .audit-table th:nth-child(2),.audit-table td:nth-child(2),.audit-table th:nth-child(3),.audit-table td:nth-child(3),.users-table th,.users-table td,.sales-table th:nth-child(2),.sales-table td:nth-child(2),.sales-table th:nth-child(3),.sales-table td:nth-child(3),.recovery-table th,.recovery-table td { text-align:left; } .sales-filters { display:flex; align-items:end; gap:12px; flex-wrap:wrap; margin:18px 0 8px; } .sales-filters label { min-width:160px; } .sales-filters select { border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--ink); background:#fff; } .filter-summary { margin-left:auto; color:var(--muted); font-size:.85rem; font-weight:750; } .sale-author { font-weight:750; } .sale-products,.recovery-products { color:var(--muted); line-height:1.55; } .empty { color:var(--muted); text-align:center!important; padding:26px; } .delete,.revoke { color:#b33f51; background:transparent; border:0; font-weight:750; } .restore { color:var(--teal); background:transparent; border:0; font-weight:750; } .audit-action { font-weight:800; } .audit-detail { color:var(--muted); } .admin-grid { display:grid; grid-template-columns:minmax(280px,.7fr) minmax(0,1.3fr); gap:24px; } .admin-grid.single { grid-template-columns:1fr; } .recovery-panel { grid-column:1/-1; } .role-badge,.status-badge { display:inline-block; padding:5px 8px; border-radius:999px; color:var(--teal-dark); background:var(--teal-soft); font-size:.75rem; font-weight:800; } .inline-role { min-width:130px; border:1px solid var(--line); border-radius:9px; padding:8px 10px; color:var(--ink); background:#fff; font-weight:750; } .status-badge.revoked { color:#9f3043; background:#fde8ec; }
+    .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; } table { width:100%; border-collapse:collapse; margin-top:10px; } th,td { padding:12px 8px; text-align:left; border-bottom:1px solid var(--line); font-size:.88rem; } th { color:var(--muted); font-size:.73rem; text-transform:uppercase; letter-spacing:.055em; } th:not(:first-child),td:not(:first-child) { text-align:right; } .audit-table th:nth-child(2),.audit-table td:nth-child(2),.audit-table th:nth-child(3),.audit-table td:nth-child(3),.users-table th,.users-table td,.sales-table th:nth-child(2),.sales-table td:nth-child(2),.sales-table th:nth-child(3),.sales-table td:nth-child(3),.recovery-table th,.recovery-table td { text-align:left; } .sales-filters { display:flex; align-items:end; gap:12px; flex-wrap:wrap; margin:18px 0 8px; } .sales-filters label { min-width:160px; } .sales-filters select { border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--ink); background:#fff; } .filter-summary { margin-left:auto; color:var(--muted); font-size:.85rem; font-weight:750; } .pagination { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:14px; color:var(--muted); font-size:.82rem; font-weight:750; } .pagination button { min-height:36px; padding:7px 11px; } .sale-author { font-weight:750; } .sale-products,.recovery-products { color:var(--muted); line-height:1.55; } .pending-row { background:#fffaf0; } .pending-label { display:inline-block; margin-top:4px; color:#8a6518; font-size:.72rem; font-weight:800; } .empty { color:var(--muted); text-align:center!important; padding:26px; } .delete,.revoke { color:#b33f51; background:transparent; border:0; font-weight:750; } .restore { color:var(--teal); background:transparent; border:0; font-weight:750; } .audit-action { font-weight:800; } .audit-detail { color:var(--muted); } .admin-grid { display:grid; grid-template-columns:minmax(280px,.7fr) minmax(0,1.3fr); gap:24px; } .admin-grid.single { grid-template-columns:1fr; } .recovery-panel { grid-column:1/-1; } .role-badge,.status-badge { display:inline-block; padding:5px 8px; border-radius:999px; color:var(--teal-dark); background:var(--teal-soft); font-size:.75rem; font-weight:800; } .inline-role { min-width:130px; border:1px solid var(--line); border-radius:9px; padding:8px 10px; color:var(--ink); background:#fff; font-weight:750; } .status-badge.revoked { color:#9f3043; background:#fde8ec; }
     .toast { position:fixed; right:20px; bottom:20px; color:#fff; background:var(--ink); padding:12px 16px; border-radius:10px; box-shadow:var(--shadow); z-index:20; }
-    @media(max-width:820px){body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}.entry-layout,.dashboard-grid,.admin-grid{grid-template-columns:1fr}.full{grid-column:auto}.metrics{grid-template-columns:repeat(2,1fr)}.dashboard-toolbar{align-items:stretch;flex-direction:column}.dashboard-actions{align-items:stretch}.dashboard-actions label{min-width:0;flex:1}.app-header{flex-direction:column;gap:14px;margin-bottom:18px}.user-area{justify-content:flex-start}.shell{padding:20px 14px 30px}.panel{padding:18px}.filter-summary{width:100%;margin-left:0}.tabs{position:fixed;z-index:15;left:0;right:0;bottom:0;display:flex;gap:0;margin:0;padding:5px 8px calc(5px + env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);background:rgba(255,255,255,.94);box-shadow:0 -8px 25px rgba(20,52,62,.08);backdrop-filter:blur(16px)}.tab{display:flex;flex:1;min-width:0;min-height:58px;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:5px 3px;border:0;border-radius:10px;font-size:.69rem}.tab::before{content:attr(data-icon);font-size:1.15rem;line-height:1}.tab.active{color:var(--teal);background:var(--teal-soft)}.toast{right:14px;left:14px;bottom:calc(82px + env(safe-area-inset-bottom));text-align:center}} @media(max-width:440px){input,select{font-size:16px}.product-row{grid-template-columns:minmax(110px,1fr) 82px 34px;gap:7px}.product-row.readonly{grid-template-columns:minmax(110px,1fr) 82px}.product-toolbar,.sales-filters,.dashboard-actions{align-items:stretch;flex-direction:column}.sales-filters label{min-width:0}.metrics{gap:10px}.metric{padding:14px}.metric-value{font-size:1.4rem}.date-row{align-items:stretch;flex-direction:column}.user-area{align-items:flex-start;flex-direction:column}.inline-role{min-width:118px}} @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+    @media(max-width:820px){body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}.entry-layout,.dashboard-grid,.admin-grid{grid-template-columns:1fr}.full{grid-column:auto}.metrics{grid-template-columns:repeat(2,1fr)}.dashboard-toolbar{align-items:stretch;flex-direction:column}.dashboard-actions{align-items:stretch}.dashboard-actions label{min-width:0;flex:1}.app-header{flex-direction:column;gap:14px;margin-bottom:18px}.user-area{justify-content:flex-start}.shell{padding:20px 14px 30px}.panel{padding:18px}.filter-summary{width:100%;margin-left:0}.connection-banner{align-items:flex-start}.pagination{justify-content:space-between}.tabs{position:fixed;z-index:15;left:0;right:0;bottom:0;display:flex;gap:0;margin:0;padding:5px 8px calc(5px + env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);background:rgba(255,255,255,.94);box-shadow:0 -8px 25px rgba(20,52,62,.08);backdrop-filter:blur(16px)}.tab{display:flex;flex:1;min-width:0;min-height:58px;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:5px 3px;border:0;border-radius:10px;font-size:.69rem}.tab::before{content:attr(data-icon);font-size:1.15rem;line-height:1}.tab.active{color:var(--teal);background:var(--teal-soft)}.toast{right:14px;left:14px;bottom:calc(82px + env(safe-area-inset-bottom));text-align:center}} @media(max-width:440px){input,select{font-size:16px}.product-row{grid-template-columns:minmax(110px,1fr) 82px 34px;gap:7px}.product-row.readonly{grid-template-columns:minmax(110px,1fr) 82px}.product-toolbar,.sales-filters,.dashboard-actions{align-items:stretch;flex-direction:column}.sales-filters label{min-width:0}.metrics{gap:10px}.metric{padding:14px}.metric-value{font-size:1.4rem}.date-row{align-items:stretch;flex-direction:column}.user-area{align-items:flex-start;flex-direction:column}.inline-role{min-width:118px}} @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
   </style>
 </head>
 <body>
@@ -53,6 +54,7 @@
     </section>
 
     <section id="appScreen" class="hidden">
+      <div id="connectionBanner" class="connection-banner hidden" role="status"><span id="connectionMessage"></span><button id="retrySyncBtn" class="ghost" data-i18n="retrySync">Réessayer</button></div>
       <header class="app-header">
         <div><h1 data-i18n="appTitle">Ventes.</h1><p class="subtitle" data-i18n="appSubtitle">Suivez vos produits et analysez vos résultats.</p></div>
         <div class="user-area"><span id="syncStatus" class="sync"></span><span id="userChip" class="user-chip"></span><button id="logoutBtn" class="secondary" data-i18n="logout">Déconnexion</button></div>
@@ -70,7 +72,7 @@
           <div class="panel"><h2 data-i18n="recordSales">Enregistrer les ventes</h2><p id="recordHint" class="hint" data-i18n="recordHint">Saisissez les unités vendues et gérez librement vos produits.</p><div class="date-row"><label><span data-i18n="date">Date</span><input id="saleDate" type="date"></label></div><div class="product-toolbar"><strong data-i18n="products">Produits</strong><button class="secondary" id="addProductBtn" data-i18n="addProduct">+ Ajouter un nouveau produit</button></div><div class="product-grid" id="productGrid"></div><div class="actions"><button class="primary" id="saveBtn" data-i18n="saveSales">Enregistrer</button><button class="secondary" id="clearBtn" data-i18n="clearForm">Effacer</button></div></div>
           <aside class="panel quick-total"><div><div class="metric-label" data-i18n="dailyTotal">Total du jour</div><div class="big" id="liveTotal">0</div><div class="hint" data-i18n="unitsAllProducts">unités, tous produits</div></div><div class="mini-list" id="liveBreakdown"></div></aside>
         </div>
-        <div id="staffSalesPanel" class="panel staff-history hidden"><h2 data-i18n="mySales">Mes ventes</h2><p class="hint" data-i18n="mySalesHint">Vos enregistrements personnels.</p><div class="table-wrap"><table><thead><tr><th data-i18n="date">Date</th><th data-i18n="products">Produits</th><th data-i18n="totalUnitsShort">Total</th></tr></thead><tbody id="mySalesBody"></tbody></table></div></div>
+        <div id="staffSalesPanel" class="panel staff-history hidden"><h2 data-i18n="mySales">Mes ventes</h2><p class="hint" data-i18n="mySalesHint">Vos enregistrements personnels.</p><div class="table-wrap"><table><thead><tr><th data-i18n="date">Date</th><th data-i18n="products">Produits</th><th data-i18n="totalUnitsShort">Total</th></tr></thead><tbody id="mySalesBody"></tbody></table></div><div id="mySalesPagination" class="pagination"></div></div>
       </section>
 
       <section class="view" id="dashboard">
@@ -79,13 +81,13 @@
         <div class="dashboard-grid">
           <div class="panel"><h2 data-i18n="productPerformance">Performance des produits</h2><p class="hint" data-i18n="productPerformanceHint">Unités vendues par produit.</p><div class="bars" id="performanceBars"></div></div>
           <div class="panel"><h2 data-i18n="recentSales">Ventes récentes</h2><p class="hint" data-i18n="recentSalesHint">Derniers enregistrements quotidiens.</p><div class="table-wrap"><table><thead><tr><th data-i18n="date">Date</th><th data-i18n="addedBy">Ajoutée par</th><th data-i18n="totalUnitsShort">Total</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
-          <div class="panel full"><h2 data-i18n="allSales">Toutes les ventes</h2><p class="hint" data-i18n="allSalesHint">Consultez tous les enregistrements et filtrez-les par mois ou année.</p><div class="sales-filters"><label><span data-i18n="year">Année</span><select id="salesYearFilter"></select></label><label><span data-i18n="month">Mois</span><select id="salesMonthFilter"></select></label><button class="secondary" id="clearSalesFilters" data-i18n="clearFilters">Réinitialiser</button><span id="salesFilterSummary" class="filter-summary"></span></div><div class="table-wrap"><table class="sales-table"><thead><tr><th data-i18n="date">Date</th><th data-i18n="addedBy">Ajoutée par</th><th data-i18n="products">Produits</th><th data-i18n="totalUnitsShort">Total</th><th></th></tr></thead><tbody id="allSalesBody"></tbody></table></div></div>
-          <div class="panel full"><h2 data-i18n="monthlyHistory">Historique mensuel</h2><p class="hint" data-i18n="monthlyHistoryHint">Ventes regroupées par mois et par produit.</p><div class="table-wrap"><table><thead id="monthlyHead"></thead><tbody id="monthlyBody"></tbody></table></div></div>
+          <div class="panel full"><h2 data-i18n="allSales">Toutes les ventes</h2><p class="hint" data-i18n="allSalesHint">Consultez tous les enregistrements et filtrez-les par mois ou année.</p><div class="sales-filters"><label><span data-i18n="year">Année</span><select id="salesYearFilter"></select></label><label><span data-i18n="month">Mois</span><select id="salesMonthFilter"></select></label><button class="secondary" id="clearSalesFilters" data-i18n="clearFilters">Réinitialiser</button><span id="salesFilterSummary" class="filter-summary"></span></div><div class="table-wrap"><table class="sales-table"><thead><tr><th data-i18n="date">Date</th><th data-i18n="addedBy">Ajoutée par</th><th data-i18n="products">Produits</th><th data-i18n="totalUnitsShort">Total</th><th></th></tr></thead><tbody id="allSalesBody"></tbody></table></div><div id="salesPagination" class="pagination"></div></div>
+          <div class="panel full"><h2 data-i18n="monthlyHistory">Historique mensuel</h2><p class="hint" data-i18n="monthlyHistoryHint">Ventes regroupées par mois et par produit.</p><div class="table-wrap"><table><thead id="monthlyHead"></thead><tbody id="monthlyBody"></tbody></table></div><div id="monthlyPagination" class="pagination"></div></div>
         </div>
       </section>
 
       <section class="view" id="audit">
-        <div class="panel"><h2 data-i18n="auditLog">Traçabilité</h2><p class="hint" data-i18n="auditHint">Journal horodaté des créations, modifications et suppressions.</p><div class="table-wrap"><table class="audit-table"><thead><tr><th data-i18n="timestamp">Date et heure</th><th data-i18n="actor">Utilisateur</th><th data-i18n="action">Action</th><th data-i18n="details">Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div></div>
+        <div class="panel"><h2 data-i18n="auditLog">Traçabilité</h2><p class="hint" data-i18n="auditHint">Journal horodaté des créations, modifications et suppressions.</p><div class="table-wrap"><table class="audit-table"><thead><tr><th data-i18n="timestamp">Date et heure</th><th data-i18n="actor">Utilisateur</th><th data-i18n="action">Action</th><th data-i18n="details">Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div><div id="auditPagination" class="pagination"></div></div>
       </section>
 
       <section class="view" id="admin">
@@ -99,7 +101,9 @@
   </main>
   <div id="toast" class="toast hidden" role="status"></div>
 
-  <script>
+  <script type="module">
+    import { clearOfflineSession, enqueuePendingSale, listPendingSales, loadOfflineSnapshot, removePendingSale, saveOfflineSnapshot } from '/assets/offline-store.js';
+    import { paginate } from '/assets/pagination.js';
     const authEndpoint = '/.netlify/functions/auth';
     const salesEndpoint = '/.netlify/functions/sales';
     const defaultState = { products:['Product 1','Product 2','Product 3','Product 4'], entries:[] };
@@ -119,6 +123,16 @@
     let dashboardPeriod = 'all';
     let capabilities = { viewGlobalDashboard:false, viewAudit:false, manageProducts:false };
     let isSaving = false;
+    let isSynchronizing = false;
+    let lastSaveQueued = false;
+    let salesPage = 1;
+    let mySalesPage = 1;
+    let auditPage = 1;
+    let monthlyPage = 1;
+    const salesPageSize = 20;
+    const mySalesPageSize = 20;
+    const auditPageSize = 25;
+    const monthlyPageSize = 12;
     let toastTimer;
 
     const translations = {
@@ -130,6 +144,8 @@
     Object.assign(translations.en,{loading:'Loading…',appTitle:'Sales.',admin:'Administrator',addStaff:'Add a user',staffHint:'Only the SuperAdmin can create a Staff or Admin account.',staffUsersHint:'All authorized accounts and their access levels.',userCreated:'User account created.',invalid_role:'Invalid user role.',admin_target_protected:'An Admin cannot manage another Admin or reactivate an account revoked by the SuperAdmin.',confirmPromote:'Promote {name} to Administrator? Their current session will be closed.',confirmDemote:'Demote {name} to Staff? Their current session will be closed.',rolePromoted:'User promoted to Administrator.',roleDemoted:'User demoted to Staff.',addedBy:'Added by',allSales:'All sales',allSalesHint:'View every record and filter by month or year.',year:'Year',allYears:'All years',allMonths:'All months',clearFilters:'Reset',salesFound:'{count} sale(s)',unknownUser:'Unknown user',backup_failed:'Automatic backup failed. Saving was cancelled to protect existing data.',privacyPolicy:'Privacy policy',recordHintRestricted:'Enter units sold. Product management is restricted to the SuperAdmin.',mySales:'My sales',mySalesHint:'Your personal records without access to the global dashboard.',dashboardPeriod:'Analyzed period',period:'Period',currentMonth:'This month',previousMonth:'Previous month',currentYear:'This year',allTime:'All time',exportCsv:'Export CSV',vsPrevious:'{delta} compared with the previous period',noPreviousData:'No data for the previous period',periodAll:'All recorded sales',periodMonth:'{month} {year}',periodYear:'Year {year}',noDataExport:'No sales to export.',product_management_forbidden:'Only the SuperAdmin can manage products.',sale_owner_forbidden:'You can only edit your own sales.',sale_delete_forbidden:'Only administrators can delete sales.',invalid_sales_data:'The sales data is invalid.'});
     Object.assign(translations.fr,{salesRecovery:'Récupération des ventes',salesRecoveryHint:'Restaurez une sauvegarde ou une suppression groupée détectée dans la traçabilité.',salesCount:'Ventes',restoreBackup:'Restaurer',emptyBackups:'Aucune source contenant des ventes.',confirmRestoreBackup:'Restaurer {count} vente(s) depuis cette source ? Une copie de sécurité sera créée avant la restauration.',salesRecovered:'{count} vente(s) restaurée(s).',backup_not_found:'Cette source de récupération est introuvable ou invalide.',sales_recovered:'Ventes restaurées',recoveryDetail:'{count} vente(s) récupérée(s) depuis la source du {date}.',audit_deleted_batch:'Suppression groupée détectée dans la traçabilité',before_sales_update:'Sauvegarde avant modification',before_product_structure_update:'Sauvegarde avant modification des produits'});
     Object.assign(translations.en,{salesRecovery:'Sales recovery',salesRecoveryHint:'Restore a backup or a bulk deletion detected in the audit trail.',salesCount:'Sales',restoreBackup:'Restore',emptyBackups:'No recovery source containing sales.',confirmRestoreBackup:'Restore {count} sale(s) from this source? A safety copy will be created before restoration.',salesRecovered:'{count} sale(s) restored.',backup_not_found:'This recovery source is missing or invalid.',sales_recovered:'Sales restored',recoveryDetail:'{count} sale(s) recovered from the {date} source.',audit_deleted_batch:'Bulk deletion detected in the audit trail',before_sales_update:'Backup before update',before_product_structure_update:'Backup before product update'});
+    Object.assign(translations.fr,{offlineMode:'Hors ligne · données locales disponibles',offlinePending:'Hors ligne · {count} modification(s) en attente',syncingPending:'Synchronisation de {count} modification(s)…',syncComplete:'Synchronisation terminée',syncFailed:'Synchronisation interrompue · {count} modification(s) en attente',syncConflict:'Synchronisation suspendue : les produits ont changé sur le serveur.',retrySync:'Réessayer',savedLocally:'Vente enregistrée localement. Elle sera synchronisée automatiquement.',offlineRestricted:'Cette action nécessite une connexion.',pendingSync:'En attente de synchronisation',previousPage:'Précédent',nextPage:'Suivant',pageStatus:'Page {page} sur {total}'});
+    Object.assign(translations.en,{offlineMode:'Offline · local data available',offlinePending:'Offline · {count} pending change(s)',syncingPending:'Synchronizing {count} change(s)…',syncComplete:'Synchronization complete',syncFailed:'Synchronization interrupted · {count} pending change(s)',syncConflict:'Synchronization paused: products changed on the server.',retrySync:'Retry',savedLocally:'Sale saved locally. It will synchronize automatically.',offlineRestricted:'This action requires a connection.',pendingSync:'Pending synchronization',previousPage:'Previous',nextPage:'Next',pageStatus:'Page {page} of {total}'});
 
     function t(key, values={}) { let value = translations[language][key] ?? key; Object.entries(values).forEach(([name,replacement]) => value = value.replace(`{${name}}`,replacement)); return value; }
     function escapeHTML(value){ const node=document.createElement('div'); node.textContent=String(value); return node.innerHTML; }
@@ -138,6 +154,21 @@
     function formatTimestamp(value){ return new Intl.DateTimeFormat(locale(),{dateStyle:'medium',timeStyle:'short'}).format(new Date(value)); }
     function showToast(message){ clearTimeout(toastTimer); $('#toast').textContent=message; $('#toast').classList.remove('hidden'); toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),2400); }
     function setSync(key){ $('#syncStatus').textContent=t(key); }
+    function cacheCurrentState(){ if(currentUser)saveOfflineSnapshot({user:currentUser,state,audit,capabilities}); }
+    function pendingSales(){ return listPendingSales(currentUser?.id); }
+    function showConnectionState(kind,key,values={}){
+      const banner=$('#connectionBanner'); banner.classList.remove('hidden','error','syncing'); banner.classList.toggle('error',kind==='error'); banner.classList.toggle('syncing',kind==='syncing');
+      const message=t(key,values); $('#connectionMessage').textContent=message; $('#retrySyncBtn').classList.toggle('hidden',kind==='offline'&&!navigator.onLine); $('#syncStatus').textContent=message;
+    }
+    function hideConnectionState(){ $('#connectionBanner').classList.add('hidden'); setSync('saved'); }
+    function setOfflineState(){ const count=pendingSales().length; showConnectionState('offline',count?'offlinePending':'offlineMode',{count}); }
+    function paginationHTML(result,scope){
+      if(result.totalPages<=1)return '';
+      return `<button class="secondary" data-page-scope="${scope}" data-page="${result.currentPage-1}" ${result.currentPage===1?'disabled':''}>${t('previousPage')}</button><span>${t('pageStatus',{page:result.currentPage,total:result.totalPages})}</span><button class="secondary" data-page-scope="${scope}" data-page="${result.currentPage+1}" ${result.currentPage===result.totalPages?'disabled':''}>${t('nextPage')}</button>`;
+    }
+    function renderCachedSnapshot(snapshot){
+      state=snapshot.state; audit=snapshot.audit??[]; applyCapabilities(snapshot.capabilities??roleCapabilities(snapshot.user)); renderEntry(); renderDashboard(); renderAudit(); restorePreferredView();
+    }
 
     function applyLanguage(){
       document.documentElement.lang=language; $('#languageSelect').value=language;
@@ -154,8 +185,12 @@
     }
 
     async function checkSession(){
-      try { const response=await fetch(authEndpoint,{credentials:'same-origin'}); if(!response.ok){ await loadSetupStatus(); return showAuth(); } const payload=await response.json(); enterApp(payload.user); await loadSales(); }
-      catch { await loadSetupStatus(); showAuth(); }
+      try { const response=await fetch(authEndpoint,{credentials:'same-origin'}); if(!response.ok){ const cached=loadOfflineSnapshot(); clearOfflineSession(cached?.user?.id); await loadSetupStatus(); return showAuth(); } const payload=await response.json(); enterApp(payload.user); await loadSales(); }
+      catch {
+        const cached=loadOfflineSnapshot();
+        if(cached){ enterApp(cached.user,true); renderCachedSnapshot(cached); setOfflineState(); }
+        else { await loadSetupStatus(); showAuth(); }
+      }
     }
     async function loadSetupStatus(){
       try { const response=await fetch(`${authEndpoint}?setup=1`,{credentials:'same-origin'}); const payload=await response.json(); setupRequired=Boolean(payload.setupRequired); }
@@ -169,10 +204,10 @@
       const activeView=document.querySelector('.view.active')?.id; if((activeView==='dashboard'&&!capabilities.viewGlobalDashboard)||(activeView==='audit'&&!capabilities.viewAudit))setView('entry');
     }
     function showAuth(){ currentUser=null; users=[]; recoveryCandidates=[]; capabilities={viewGlobalDashboard:false,viewAudit:false,manageProducts:false}; $('#bootScreen').classList.add('hidden'); $('#appScreen').classList.add('hidden'); $('#authScreen').classList.remove('hidden'); $('#adminTab').classList.add('hidden'); $('#addUserPanel').classList.add('hidden'); $('#recoveryPanel').classList.add('hidden'); $('#dashboardTab').classList.add('hidden'); $('#auditTab').classList.add('hidden'); $('#staffSalesPanel').classList.add('hidden'); setView('entry',false); }
-    function enterApp(user){
+    function enterApp(user,offline=false){
       const canViewAdministration=['superadmin','admin'].includes(user.role);
       currentUser=user; capabilities=roleCapabilities(user); $('#authScreen').classList.add('hidden'); $('#userChip').textContent=`${user.name} · ${t(user.role)}`; $('#adminTab').classList.toggle('hidden',!canViewAdministration); $('#addUserPanel').classList.toggle('hidden',user.role!=='superadmin'); $('#recoveryPanel').classList.toggle('hidden',user.role!=='superadmin'); $('#adminGrid').classList.toggle('single',user.role==='admin'); applyCapabilities(); restorePreferredView(); $('#bootScreen').classList.add('hidden'); $('#appScreen').classList.remove('hidden'); setSync('saved');
-      if(canViewAdministration) loadUsers(); if(user.role==='superadmin')loadRecovery();
+      if(!offline&&canViewAdministration) loadUsers(); if(!offline&&user.role==='superadmin')loadRecovery();
     }
 
     async function submitAuth(event){
@@ -185,22 +220,49 @@
       finally { $('#authSubmit').disabled=false; }
     }
 
-    async function logout(){ await fetch(authEndpoint,{method:'DELETE',credentials:'same-origin'}).catch(()=>{}); state=structuredClone(defaultState); audit=[]; showAuth(); }
+    async function logout(){ const userId=currentUser?.id; await fetch(authEndpoint,{method:'DELETE',credentials:'same-origin'}).catch(()=>{}); clearOfflineSession(userId); state=structuredClone(defaultState); audit=[]; showAuth(); }
 
     async function loadSales(){
       setSync('saving');
-      try { const response=await fetch(salesEndpoint,{credentials:'same-origin'}); if(response.status===401) return showAuth(); if(!response.ok) throw new Error(); const payload=await response.json(); state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); renderEntry(); renderDashboard(); renderAudit(); restorePreferredView(); setSync('saved'); }
-      catch { setSync('saveError'); }
+      try { const response=await fetch(salesEndpoint,{credentials:'same-origin'}); if(response.status===401){clearOfflineSession(currentUser?.id);return showAuth();} if(!response.ok) throw new Error(); const payload=await response.json(); state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); renderEntry(); renderDashboard(); renderAudit(); restorePreferredView(); cacheCurrentState(); if(pendingSales().length)await synchronizePendingSales();else hideConnectionState(); }
+      catch { const cached=loadOfflineSnapshot(); if(cached?.user?.id===currentUser?.id)renderCachedSnapshot(cached); setOfflineState(); }
     }
 
-    async function saveState(nextState=state){
+    function saveOfflineDraft(nextState,mutation){
+      if(!enqueuePendingSale(currentUser?.id,mutation)){showToast(t('saveError'));return false;}
+      state={...nextState,entries:nextState.entries.map(entry=>entry.date===mutation.date?{...entry,pendingSync:true}:entry)}; lastSaveQueued=true; renderEntry(); renderDashboard(); renderAudit(); cacheCurrentState(); setOfflineState(); return true;
+    }
+
+    async function saveState(nextState=state,{offlineMutation=null}={}){
       if(isSaving)return false;
+      lastSaveQueued=false;
+      if(!navigator.onLine)return offlineMutation?saveOfflineDraft(nextState,offlineMutation):(showToast(t('offlineRestricted')),false);
       isSaving=true; $('#saveBtn').disabled=true;
       setSync('saving');
-      try { const response=await fetch(salesEndpoint,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(nextState)}); if(response.status===401) return showAuth(); const payload=await response.json().catch(()=>({})); if(!response.ok){showToast(t(payload.error||'saveError'));throw new Error();} state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); renderDashboard(); renderAudit(); renderMySales(); setSync('saved'); return true; }
-      catch { setSync('saveError'); return false; }
+      let reachedServer=false;
+      try { const response=await fetch(salesEndpoint,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(nextState)}); reachedServer=true; if(response.status===401){clearOfflineSession(currentUser?.id);return showAuth();} const payload=await response.json().catch(()=>({})); if(!response.ok){showToast(t(payload.error||'saveError'));setSync('saveError');return false;} state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); renderDashboard(); renderAudit(); renderMySales(); cacheCurrentState(); hideConnectionState(); return true; }
+      catch { if(!reachedServer&&offlineMutation)return saveOfflineDraft(nextState,offlineMutation); setSync('saveError'); return false; }
       finally { isSaving=false; $('#saveBtn').disabled=false; }
     }
+
+    async function synchronizePendingSales(){
+      if(isSynchronizing||!currentUser||!navigator.onLine)return;
+      const queue=pendingSales(); if(!queue.length){hideConnectionState();return;}
+      isSynchronizing=true; showConnectionState('syncing','syncingPending',{count:queue.length}); $('#retrySyncBtn').disabled=true;
+      try {
+        for(const mutation of queue){
+          const latestResponse=await fetch(salesEndpoint,{credentials:'same-origin'}); if(latestResponse.status===401){clearOfflineSession(currentUser?.id);showAuth();return;} if(!latestResponse.ok)throw new Error('network');
+          const latest=await latestResponse.json();
+          if(JSON.stringify(latest.products)!==JSON.stringify(mutation.products))throw new Error('product_conflict');
+          const draft={products:latest.products,entries:structuredClone(latest.entries)}; const existing=draft.entries.findIndex(entry=>entry.date===mutation.date); const entry={date:mutation.date,units:mutation.units}; if(existing>=0)draft.entries[existing]=entry;else draft.entries.push(entry); draft.entries.sort((a,b)=>b.date.localeCompare(a.date));
+          const saveResponse=await fetch(salesEndpoint,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(draft)}); const payload=await saveResponse.json().catch(()=>({})); if(!saveResponse.ok)throw new Error(payload.error||'network');
+          removePendingSale(currentUser.id,mutation.id); state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); cacheCurrentState();
+        }
+        renderEntry(); renderDashboard(); renderAudit(); showConnectionState('syncing','syncComplete'); setTimeout(()=>{if(!pendingSales().length)hideConnectionState();},1800);
+      } catch(error){ showConnectionState('error',error.message==='product_conflict'?'syncConflict':'syncFailed',{count:pendingSales().length}); }
+      finally { isSynchronizing=false; $('#retrySyncBtn').disabled=false; }
+    }
+    async function resumeOnline(){ if(!currentUser||!navigator.onLine)return; if(pendingSales().length)await synchronizePendingSales();else await loadSales(); }
 
     function currentFormUnits(){ return [...document.querySelectorAll('.units')].map(input=>Math.max(0,Number(input.value)||0)); }
     function renderEntry(formUnits=[]){
@@ -229,15 +291,17 @@
       draft.products.splice(index,1); draft.entries=draft.entries.map(entry=>({...entry,units:entry.units.filter((_,unitIndex)=>unitIndex!==index)}));
       if(await saveState(draft)){renderEntry(formUnits);showToast(t('productRemoved'));}
     }
-    async function saveEntry(){ const date=$('#saleDate').value; if(!date){showToast(t('chooseDate'));return;} const units=[...document.querySelectorAll('.units')].map(input=>Math.max(0,Number(input.value)||0)); const draft=structuredClone(state); const existing=draft.entries.findIndex(entry=>entry.date===date); const entry={date,units}; if(existing>=0)draft.entries[existing]=entry;else draft.entries.push(entry); draft.entries.sort((a,b)=>b.date.localeCompare(a.date)); if(await saveState(draft)){showToast(t('saleSaved'));setView(capabilities.viewGlobalDashboard?'dashboard':'entry');} }
+    async function saveEntry(){ const date=$('#saleDate').value; if(!date){showToast(t('chooseDate'));return;} const units=[...document.querySelectorAll('.units')].map(input=>Math.max(0,Number(input.value)||0)); const draft=structuredClone(state); const existing=draft.entries.findIndex(entry=>entry.date===date); const previous=existing>=0?draft.entries[existing]:null; const entry={date,units,createdBy:previous?.createdBy??{id:currentUser.id,name:currentUser.name,email:currentUser.email},createdAt:previous?.createdAt??new Date().toISOString(),pendingSync:!navigator.onLine}; if(existing>=0)draft.entries[existing]=entry;else draft.entries.push(entry); draft.entries.sort((a,b)=>b.date.localeCompare(a.date)); const mutation={date,units,products:[...state.products]}; if(await saveState(draft,{offlineMutation:mutation})){showToast(t(lastSaveQueued?'savedLocally':'saleSaved'));setView(capabilities.viewGlobalDashboard?'dashboard':'entry');} }
     async function deleteEntry(date){ if(!capabilities.viewGlobalDashboard){showToast(t('sale_delete_forbidden'));return;} if(!confirm(t('confirmDelete')))return; const draft={...structuredClone(state),entries:state.entries.filter(entry=>entry.date!==date)}; if(await saveState(draft))showToast(t('saleDeleted')); }
 
     function entryAuthor(entry){ return entry.createdBy??{name:t('unknownUser'),email:''}; }
-    function authorCell(entry){ const author=entryAuthor(entry); return `<span class="sale-author">${escapeHTML(author.name||t('unknownUser'))}</span>${author.email?`<div class="audit-detail">${escapeHTML(author.email)}</div>`:''}`; }
+    function authorCell(entry){ const author=entryAuthor(entry); return `<span class="sale-author">${escapeHTML(author.name||t('unknownUser'))}</span>${author.email?`<div class="audit-detail">${escapeHTML(author.email)}</div>`:''}${entry.pendingSync?`<span class="pending-label">${t('pendingSync')}</span>`:''}`; }
     function productDetails(entry){ return state.products.map((name,index)=>`${escapeHTML(name)}: <strong>${Number(entry.units[index]||0).toLocaleString(locale())}</strong>`).join(' · '); }
     function renderMySales(){
       if(currentUser?.role!=='staff')return;
-      $('#mySalesBody').innerHTML=state.entries.length?state.entries.map(entry=>`<tr><td>${formatDate(entry.date)}</td><td class="sale-products">${productDetails(entry)}</td><td><strong>${entry.units.reduce((sum,value)=>sum+value,0).toLocaleString(locale())}</strong></td></tr>`).join(''):`<tr><td colspan="3" class="empty">${t('emptySales')}</td></tr>`;
+      const page=paginate(state.entries,mySalesPage,mySalesPageSize); mySalesPage=page.currentPage;
+      $('#mySalesBody').innerHTML=page.items.length?page.items.map(entry=>`<tr class="${entry.pendingSync?'pending-row':''}"><td>${formatDate(entry.date)}${entry.pendingSync?`<div class="pending-label">${t('pendingSync')}</div>`:''}</td><td class="sale-products">${productDetails(entry)}</td><td><strong>${entry.units.reduce((sum,value)=>sum+value,0).toLocaleString(locale())}</strong></td></tr>`).join(''):`<tr><td colspan="3" class="empty">${t('emptySales')}</td></tr>`;
+      $('#mySalesPagination').innerHTML=paginationHTML(page,'my-sales');
     }
 
     function isoDate(year,month,day){ return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; }
@@ -281,15 +345,19 @@
     function renderAllSales(){
       renderSalesFilters();
       const filtered=state.entries.filter(entry=>(!salesFilters.year||entry.date.startsWith(salesFilters.year))&&(!salesFilters.month||entry.date.slice(5,7)===salesFilters.month));
+      const page=paginate(filtered,salesPage,salesPageSize); salesPage=page.currentPage;
       $('#salesFilterSummary').textContent=t('salesFound',{count:filtered.length.toLocaleString(locale())});
-      $('#allSalesBody').innerHTML=filtered.length?filtered.map(entry=>`<tr><td>${formatDate(entry.date)}</td><td>${authorCell(entry)}</td><td class="sale-products">${productDetails(entry)}</td><td><strong>${entry.units.reduce((sum,value)=>sum+value,0).toLocaleString(locale())}</strong></td><td><button class="delete" data-delete="${entry.date}">${t('delete')}</button></td></tr>`).join(''):`<tr><td colspan="5" class="empty">${t('emptySales')}</td></tr>`;
+      $('#allSalesBody').innerHTML=page.items.length?page.items.map(entry=>`<tr class="${entry.pendingSync?'pending-row':''}"><td>${formatDate(entry.date)}</td><td>${authorCell(entry)}</td><td class="sale-products">${productDetails(entry)}</td><td><strong>${entry.units.reduce((sum,value)=>sum+value,0).toLocaleString(locale())}</strong></td><td><button class="delete" data-delete="${entry.date}">${t('delete')}</button></td></tr>`).join(''):`<tr><td colspan="5" class="empty">${t('emptySales')}</td></tr>`;
+      $('#salesPagination').innerHTML=paginationHTML(page,'sales');
       document.querySelectorAll('[data-delete]').forEach(button=>button.onclick=()=>deleteEntry(button.dataset.delete));
     }
 
     function renderMonthly(entries=state.entries){
       const months=new Map(); entries.forEach(entry=>{const key=entry.date.slice(0,7);if(!months.has(key))months.set(key,Array(state.products.length).fill(0));entry.units.forEach((value,index)=>months.get(key)[index]+=Number(value)||0);});
+      const page=paginate([...months.entries()].sort((a,b)=>b[0].localeCompare(a[0])),monthlyPage,monthlyPageSize); monthlyPage=page.currentPage;
       $('#monthlyHead').innerHTML=`<tr><th>${t('month')}</th>${state.products.map(name=>`<th>${escapeHTML(name)}</th>`).join('')}<th>${t('totalUnitsShort')}</th></tr>`;
-      $('#monthlyBody').innerHTML=months.size?[...months.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([month,units])=>`<tr><td>${new Intl.DateTimeFormat(locale(),{year:'numeric',month:'long'}).format(new Date(`${month}-01T00:00:00`))}</td>${units.map(value=>`<td>${value.toLocaleString(locale())}</td>`).join('')}<td><strong>${units.reduce((sum,value)=>sum+value,0).toLocaleString(locale())}</strong></td></tr>`).join(''):`<tr><td colspan="${state.products.length+2}" class="empty">${t('emptySales')}</td></tr>`;
+      $('#monthlyBody').innerHTML=page.items.length?page.items.map(([month,units])=>`<tr><td>${new Intl.DateTimeFormat(locale(),{year:'numeric',month:'long'}).format(new Date(`${month}-01T00:00:00`))}</td>${units.map(value=>`<td>${value.toLocaleString(locale())}</td>`).join('')}<td><strong>${units.reduce((sum,value)=>sum+value,0).toLocaleString(locale())}</strong></td></tr>`).join(''):`<tr><td colspan="${state.products.length+2}" class="empty">${t('emptySales')}</td></tr>`;
+      $('#monthlyPagination').innerHTML=paginationHTML(page,'monthly');
     }
 
     function csvCell(value){ const raw=String(value??''); const safe=/^[=+\-@]/.test(raw)?`'${raw}`:raw; return `"${safe.replaceAll('"','""')}"`; }
@@ -300,7 +368,7 @@
     }
 
     function auditDetails(event){ if(event.action==='products_updated')return t('productNamesChanged'); if(event.action==='product_added'||event.action==='product_removed')return t('productDetail',{product:event.product||'—'}); if(event.action==='sales_recovered')return t('recoveryDetail',{count:event.restoredEntries,date:formatTimestamp(event.sourceCreatedAt)}); const date=event.date?`${t('forDate',{date:formatDate(event.date)})} · `:''; return `${date}${t('totalDetail',{total:Number(event.total||0).toLocaleString(locale())})}`; }
-    function renderAudit(){ $('#auditBody').innerHTML=audit.length?audit.map(event=>`<tr><td>${formatTimestamp(event.timestamp)}</td><td>${escapeHTML(event.actor?.name||'—')}<div class="audit-detail">${escapeHTML(event.actor?.email||'')}</div></td><td class="audit-action">${t(event.action)}</td><td class="audit-detail">${escapeHTML(auditDetails(event))}</td></tr>`).join(''):`<tr><td colspan="4" class="empty">${t('emptyAudit')}</td></tr>`; }
+    function renderAudit(){ const page=paginate(audit,auditPage,auditPageSize); auditPage=page.currentPage; $('#auditBody').innerHTML=page.items.length?page.items.map(event=>`<tr><td>${formatTimestamp(event.timestamp)}</td><td>${escapeHTML(event.actor?.name||'—')}<div class="audit-detail">${escapeHTML(event.actor?.email||'')}</div></td><td class="audit-action">${t(event.action)}</td><td class="audit-detail">${escapeHTML(auditDetails(event))}</td></tr>`).join(''):`<tr><td colspan="4" class="empty">${t('emptyAudit')}</td></tr>`; $('#auditPagination').innerHTML=paginationHTML(page,'audit'); }
 
     async function loadRecovery(){
       if(currentUser?.role!=='superadmin')return;
@@ -372,12 +440,16 @@
 
     $('#languageSelect').addEventListener('change',event=>{language=event.target.value;localStorage.setItem('sales-language',language);applyLanguage();});
     $('#authForm').addEventListener('submit',submitAuth); $('#logoutBtn').addEventListener('click',logout); $('#addProductBtn').addEventListener('click',addProduct); $('#saveBtn').addEventListener('click',saveEntry); $('#clearBtn').addEventListener('click',()=>{document.querySelectorAll('.units').forEach(input=>input.value=0);updateLive();});
-    $('#salesYearFilter').addEventListener('change',event=>{salesFilters.year=event.target.value;renderAllSales();}); $('#salesMonthFilter').addEventListener('change',event=>{salesFilters.month=event.target.value;renderAllSales();}); $('#clearSalesFilters').addEventListener('click',()=>{salesFilters={year:'',month:''};renderAllSales();});
-    $('#dashboardPeriodFilter').addEventListener('change',event=>{dashboardPeriod=event.target.value;renderDashboard();}); $('#exportDashboardCsv').addEventListener('click',exportDashboard);
+    $('#salesYearFilter').addEventListener('change',event=>{salesPage=1;salesFilters.year=event.target.value;renderAllSales();}); $('#salesMonthFilter').addEventListener('change',event=>{salesPage=1;salesFilters.month=event.target.value;renderAllSales();}); $('#clearSalesFilters').addEventListener('click',()=>{salesPage=1;salesFilters={year:'',month:''};renderAllSales();});
+    $('#dashboardPeriodFilter').addEventListener('change',event=>{monthlyPage=1;dashboardPeriod=event.target.value;renderDashboard();}); $('#exportDashboardCsv').addEventListener('click',exportDashboard);
     $('#staffForm').addEventListener('submit',createStaff);
     $('#usersBody').addEventListener('click',event=>{const button=event.target.closest('[data-access-user]');if(button)setUserAccess(button.dataset.accessUser,button.dataset.accessActive==='true');}); $('#usersBody').addEventListener('change',event=>{const select=event.target.closest('[data-role-user]');if(select)setUserRole(select.dataset.roleUser,select.value,select);});
     $('#recoveryBody').addEventListener('click',event=>{const button=event.target.closest('[data-restore-backup]');if(button)restoreBackup(button.dataset.restoreBackup);});
+    $('#retrySyncBtn').addEventListener('click',resumeOnline);
+    document.addEventListener('click',event=>{const button=event.target.closest('[data-page-scope]');if(!button)return;const page=Math.max(1,Number(button.dataset.page)||1);if(button.dataset.pageScope==='sales'){salesPage=page;renderAllSales();}if(button.dataset.pageScope==='my-sales'){mySalesPage=page;renderMySales();}if(button.dataset.pageScope==='audit'){auditPage=page;renderAudit();}if(button.dataset.pageScope==='monthly'){monthlyPage=page;renderMonthly(dashboardPeriodData().entries);}button.closest('.panel')?.scrollIntoView({behavior:'smooth',block:'start'});});
     document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>setView(tab.dataset.view)));
+    window.addEventListener('online',resumeOnline); window.addEventListener('offline',()=>{if(currentUser)setOfflineState();});
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
     $('#saleDate').valueAsDate=new Date(); applyLanguage(); checkSession();
   </script>
 </body>

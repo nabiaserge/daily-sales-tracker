@@ -1,6 +1,7 @@
 {
   "name": "daily-sales-tracker",
   "private": true,
+  "type": "module",
   "version": "1.0.0",
   "scripts": {
     "test": "node --preserve-symlinks --preserve-symlinks-main --test tests/*.test.mjs",

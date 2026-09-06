@@ -1,4 +1,9 @@
 [build]
-  command = "mkdir -p dist && cp index.html manifest.webmanifest privacy.html dist/"
+  command = "mkdir -p dist/assets && cp index.html manifest.webmanifest privacy.html service-worker.js dist/ && cp assets/*.js dist/assets/"
   publish = "dist"
   functions = "netlify/functions"
+
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "no-cache"
