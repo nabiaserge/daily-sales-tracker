@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isRestorableSnapshot, listAuditRecoveryCandidates, recoverAuditEntries, summarizeSnapshot } from "../netlify/lib/recovery.mjs";
+import { isRestorableSnapshot, listAuditRecoveryCandidates, recoverAuditEntries, selectAuditRecoveryCandidate, summarizeSnapshot } from "../netlify/lib/recovery.mjs";
 
 const validSnapshot = {
   createdAt: "2026-08-19T20:48:29.497Z",
@@ -51,4 +51,15 @@ test("existing sales are excluded from audit recovery", () => {
   const audit = [{ timestamp: "2026-09-06T00:44:00.000Z", action: "sale_deleted", date: "2026-09-03", total: 2150, actor: { id: "root" } }];
   const candidates = listAuditRecoveryCandidates({ audit, products: ["Eaux&glaces"], currentEntries: [{ date: "2026-09-03", units: [2150] }] });
   assert.deepEqual(candidates, []);
+});
+
+test("automatic recovery selects only the exact audited deletion batch", () => {
+  const expected = { key: "audit:expected", entryCount: 62, totalUnits: 52100 };
+  const candidates = [
+    { key: "audit:other", entryCount: 1, totalUnits: 1000 },
+    expected,
+    { key: "audit:similar", entryCount: 62, totalUnits: 52000 }
+  ];
+  assert.equal(selectAuditRecoveryCandidate(candidates, { entryCount: 62, totalUnits: 52100 }), expected);
+  assert.equal(selectAuditRecoveryCandidate(candidates, { entryCount: 63, totalUnits: 52100 }), null);
 });

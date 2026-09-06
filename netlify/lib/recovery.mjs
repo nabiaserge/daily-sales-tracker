@@ -67,3 +67,7 @@ export function listAuditRecoveryCandidates({ audit, products, currentEntries = 
 export function recoverAuditEntries({ audit, products, currentEntries = [], key }) {
   return listAuditRecoveryCandidates({ audit, products, currentEntries }).find((candidate) => candidate.key === key)?.entries ?? null;
 }
+
+export function selectAuditRecoveryCandidate(candidates, { entryCount, totalUnits }) {
+  return candidates.find((candidate) => candidate.entryCount === entryCount && candidate.totalUnits === totalUnits) ?? null;
+}

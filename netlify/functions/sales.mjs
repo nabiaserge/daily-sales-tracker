@@ -2,7 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { randomUUID } from "node:crypto";
 import { createBackup, listRecoverySnapshots, readRecoverySnapshot } from "../lib/backup.mjs";
 import { canManageProducts, canViewAudit, canViewGlobalDashboard } from "../lib/permissions.mjs";
-import { listAuditRecoveryCandidates, recoverAuditEntries } from "../lib/recovery.mjs";
+import { listAuditRecoveryCandidates, recoverAuditEntries, selectAuditRecoveryCandidate } from "../lib/recovery.mjs";
 import { authorizeSalesMutation, mergeStaffSales, ownsSale } from "../lib/sales-access.mjs";
 import { getSession } from "../lib/session.mjs";
 
@@ -11,6 +11,7 @@ const defaultData = {
   products: ["Product One", "Product Two", "Product Three", "Product Four"],
   entries: []
 };
+const auditRecoveryMigrationKey = "migration:audit-recovery-2026-09-v1";
 
 function dataKey() {
   return "sales:shared";
@@ -149,6 +150,37 @@ function buildAudit(previous, next, session) {
   return events;
 }
 
+async function applyAuditRecoveryMigration(data, audit, session) {
+  if (!canManageProducts(session) || data.entries.length > 0 || data.products.length !== 1) return { data, audit };
+  if (await store.get(auditRecoveryMigrationKey, { type: "json" })) return { data, audit };
+
+  const candidates = listAuditRecoveryCandidates({ audit, products: data.products, currentEntries: data.entries });
+  const candidate = selectAuditRecoveryCandidate(candidates, { entryCount: 62, totalUnits: 52100 });
+  if (!candidate) return { data, audit };
+
+  const products = ["Eau & Glace"];
+  const entries = recoverAuditEntries({ audit, products, currentEntries: [], key: candidate.key });
+  if (!entries || entries.length !== 62) return { data, audit };
+
+  await createBackup({ reason: "before_audit_recovery_migration", data, audit, session });
+  const restored = { products, entries: entries.sort((first, second) => second.date.localeCompare(first.date)) };
+  const recoveryEvent = auditEvent(session, "sales_recovered", {
+    sourceCreatedAt: candidate.createdAt,
+    restoredEntries: entries.length,
+    restoredProducts: products
+  });
+  const nextAudit = [recoveryEvent, ...audit].slice(0, 500);
+  await store.setJSON(dataKey(), restored);
+  await store.setJSON(auditKey(), nextAudit);
+  await store.setJSON(auditRecoveryMigrationKey, {
+    completedAt: new Date().toISOString(),
+    source: candidate.key,
+    restoredEntries: entries.length,
+    totalUnits: candidate.totalUnits
+  });
+  return { data: restored, audit: nextAudit };
+}
+
 async function handleRecovery(request, session) {
   if (!canManageProducts(session)) {
     return Response.json({ error: "forbidden" }, { status: 403, headers: { "Cache-Control": "no-store" } });
@@ -209,7 +241,12 @@ export default async (request) => {
   if (request.method === "GET") {
     const data = await loadData(session);
     const audit = (await store.get(auditKey(), { type: "json" })) ?? [];
-    return Response.json(clientPayload(data, audit, session), { headers: { "Cache-Control": "no-store" } });
+    try {
+      const recovered = await applyAuditRecoveryMigration(data, audit, session);
+      return Response.json(clientPayload(recovered.data, recovered.audit, session), { headers: { "Cache-Control": "no-store" } });
+    } catch {
+      return Response.json({ error: "backup_failed" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
   }
 
   if (request.method !== "PUT") {
