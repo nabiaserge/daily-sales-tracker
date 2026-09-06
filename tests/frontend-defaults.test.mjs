@@ -8,3 +8,9 @@ test('the dashboard displays all historical sales by default', () => {
   assert.match(html, /let dashboardPeriod = 'all';/);
   assert.match(html, /<option value="all"[^>]*selected>/);
 });
+
+test('the complete sales list starts on the current month', () => {
+  assert.match(html, /const initialSalesFilterDate = new Date\(\);/);
+  assert.match(html, /year:String\(initialSalesFilterDate\.getFullYear\(\)\)/);
+  assert.match(html, /month:String\(initialSalesFilterDate\.getMonth\(\)\+1\)\.padStart\(2,'0'\)/);
+});

@@ -107,7 +107,8 @@
     let audit = [];
     let users = [];
     let recoveryCandidates = [];
-    let salesFilters = { year:'', month:'' };
+    const initialSalesFilterDate = new Date();
+    let salesFilters = { year:String(initialSalesFilterDate.getFullYear()), month:String(initialSalesFilterDate.getMonth()+1).padStart(2,'0') };
     let dashboardPeriod = 'all';
     let capabilities = { viewGlobalDashboard:false, viewAudit:false, manageProducts:false };
     let isSaving = false;
