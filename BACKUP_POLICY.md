@@ -13,6 +13,8 @@ No change may rename, delete, replace, or migrate the store, its keys, or the pe
 - Snapshots use immutable `backup:<timestamp>:<uuid>` keys.
 - `backups:index` keeps the 200 newest backup references; older snapshot blobs are not automatically deleted.
 - A failed snapshot returns `backup_failed` and blocks the requested write.
+- Production (`production:shared`) and expense (`expenses:shared`) writes snapshot the previous dataset and the shared audit trail under `backup:<dataset>:<timestamp>:<uuid>`, indexed in `backups:<dataset>:index` (200 newest). These snapshots never appear among sales recovery candidates.
+- A product structure change also snapshots `production:shared` before its quantities are realigned to the new product list.
 
 ## Change checklist
 
