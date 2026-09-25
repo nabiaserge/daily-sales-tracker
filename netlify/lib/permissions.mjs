@@ -54,6 +54,12 @@ export function canChangeAccess(session, targetRole, options = {}) {
   return !(options.nextActive === true && options.accessUpdatedByRole === roles.superadmin);
 }
 
+// The SuperAdmin resets Admin and Staff passwords; an Admin resets Staff passwords only.
+export function canResetPassword(session, targetRole) {
+  if (session?.role === roles.superadmin) return assignableRoles.includes(targetRole);
+  return session?.role === roles.admin && targetRole === roles.staff;
+}
+
 export function canChangeRole(session, targetRole, nextRole) {
   return session?.role === roles.superadmin
     && assignableRoles.includes(targetRole)

@@ -1,6 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activateDeviceSession, closeDeviceSession, createDeviceSession, deviceSessionKey, sessionDurationMs } from "../netlify/lib/device-session.mjs";
+import { activateDeviceSession, closeDeviceSession, createDeviceSession, deviceSessionKey, sessionChangedResponse, sessionDurationMs, sessionUserMismatch } from "../netlify/lib/device-session.mjs";
+
+test("a tab acting for another account than the cookie's is refused", async () => {
+  const session = { userId: "serge" };
+  const request = (user) => new Request("https://example.com/", { headers: user ? { "X-Session-User": user } : {} });
+  assert.equal(sessionUserMismatch(request("awa"), session), true);
+  assert.equal(sessionUserMismatch(request("serge"), session), false);
+  assert.equal(sessionUserMismatch(request(null), session), false);
+  assert.equal(sessionUserMismatch(request("awa"), null), false);
+  const response = sessionChangedResponse();
+  assert.equal(response.status, 409);
+  assert.equal(response.headers.get("X-Session-Changed"), "1");
+  assert.deepEqual(await response.json(), { error: "session_changed" });
+});
 
 function memoryStore() {
   const values = new Map();

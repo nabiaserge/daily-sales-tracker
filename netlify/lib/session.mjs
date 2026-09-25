@@ -35,13 +35,17 @@ export async function getSession(request) {
 
   const accountKey = `user:${createHash("sha256").update(session.email).digest("hex")}`;
   const account = await authStore.get(accountKey, { type: "json" });
-  if (!account || account.active === false || account.role !== session.role) {
+  // A password reset closes every session opened before it.
+  const passwordChangedAt = Number(account?.passwordChangedAt) || 0;
+  if (!account || account.active === false || account.role !== session.role || issuedAt < passwordChangedAt) {
     await authStore.delete(`session:${token}`);
     return null;
   }
 
   return { ...session, token };
 }
+
+export { sessionChangedResponse, sessionUserMismatch } from "./device-session.mjs";
 
 export function createSessionCookie(token) {
   return `${sessionCookie}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`;
