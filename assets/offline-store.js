@@ -43,13 +43,12 @@ export function loadOfflineSnapshot() {
   return snapshot?.user?.id === userId && snapshot?.state ? snapshot : null;
 }
 
-export function clearOfflineSession(userId) {
+// Clears the cached server view but keeps unsynchronized sales: they belong to the user
+// and are sent as soon as the same user signs in again on this device.
+export function clearOfflineSnapshot(userId) {
   try {
     localStorage.removeItem(ACTIVE_USER_KEY);
-    if (userId) {
-      localStorage.removeItem(`${SNAPSHOT_PREFIX}${userId}`);
-      localStorage.removeItem(`${QUEUE_PREFIX}${userId}`);
-    }
+    if (userId) localStorage.removeItem(`${SNAPSHOT_PREFIX}${userId}`);
   } catch {}
 }
 
@@ -73,7 +72,14 @@ export function enqueuePendingSale(userId, mutation) {
   return writeJSON(`${QUEUE_PREFIX}${userId}`, queue);
 }
 
-export function removePendingSale(userId, mutationId) {
-  const queue = listPendingSales(userId).filter((item) => item.id !== mutationId);
+export function removePendingSales(userId, mutationIds) {
+  const ids = new Set(mutationIds);
+  const queue = listPendingSales(userId).filter((item) => !ids.has(item.id));
+  return writeJSON(`${QUEUE_PREFIX}${userId}`, queue);
+}
+
+export function markPendingSalesRejected(userId, rejections) {
+  const errors = new Map(rejections.filter((item) => item?.id).map((item) => [item.id, item.error]));
+  const queue = listPendingSales(userId).map((item) => errors.has(item.id) ? { ...item, error: errors.get(item.id) } : item);
   return writeJSON(`${QUEUE_PREFIX}${userId}`, queue);
 }

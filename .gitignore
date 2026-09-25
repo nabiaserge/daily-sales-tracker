@@ -11,3 +11,4 @@ android/*.jks
 android/*.keystore
 android/captures/
 android/*.log
+node_modules/

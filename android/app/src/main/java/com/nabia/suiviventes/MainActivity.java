@@ -4,9 +4,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -99,7 +96,7 @@ public final class MainActivity extends Activity {
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setUserAgentString(settings.getUserAgentString() + " SuiviVentesAndroid/1.0.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " SuiviVentesAndroid/1.0.1");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             settings.setSafeBrowsingEnabled(true);
         }
@@ -118,15 +115,10 @@ public final class MainActivity extends Activity {
         });
     }
 
+    // Always load the web app: its service worker serves the cached version and the locally
+    // saved sales when there is no network. The fallback page is only shown if nothing is cached yet.
     private void loadApplication() {
-        webView.loadUrl(isOnline() ? APP_URL : "file:///android_asset/offline.html");
-    }
-
-    private boolean isOnline() {
-        ConnectivityManager connectivityManager = getSystemService(ConnectivityManager.class);
-        Network network = connectivityManager.getActiveNetwork();
-        NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
-        return capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        webView.loadUrl(APP_URL);
     }
 
     private boolean isTrusted(Uri uri) {

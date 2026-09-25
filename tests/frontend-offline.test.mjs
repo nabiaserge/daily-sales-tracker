@@ -15,7 +15,7 @@ test('pagination clamps pages and returns only the requested slice', () => {
 test('the frontend registers an offline shell and synchronization queue', () => {
   assert.match(html, /serviceWorker\.register\('\/service-worker\.js'\)/);
   assert.match(html, /enqueuePendingSale/);
-  assert.match(html, /async function synchronizePendingSales\(\)/);
+  assert.match(html, /async function synchronizePendingSales\(/);
   assert.match(html, /window\.addEventListener\('online',resumeOnline\)/);
 });
 
@@ -28,8 +28,29 @@ test('history views use bounded pagination', () => {
   assert.match(html, /paginate\(audit,auditPage,auditPageSize\)/);
 });
 
-test('offline snapshots are cleared after an authoritative unauthorized response', () => {
-  assert.match(html, /response\.status===401\)\{clearOfflineSession\(currentUser\?\.id\);return showAuth\(\);\}/);
+test('an unauthorized response clears the cached snapshot but never the pending sales queue', () => {
+  assert.match(html, /function handleUnauthorized\(\)\{ clearOfflineSnapshot\(currentUser\?\.id\);/);
+  assert.doesNotMatch(html, /clearOfflineSession/);
+});
+
+test('sales are queued first and synchronized in one idempotent batch', () => {
+  assert.match(html, /function queueSale\(mutation\)\{\s*if\(!enqueuePendingSale/);
+  assert.match(html, /request\(salesEndpoint,\{method:'POST',headers:\{'Content-Type':'application\/json'\},body:JSON\.stringify\(\{sales\}\)\}\)/);
+  assert.doesNotMatch(html, /function saveEntry\(\)[^\n]*saveState\(/);
+});
+
+test('network requests time out so weak connections fall back to local data quickly', () => {
+  assert.match(html, /const requestTimeoutMs = 12000;/);
+  assert.match(html, /setTimeout\(\(\)=>controller\.abort\(\),requestTimeoutMs\)/);
+});
+
+test('pending sales are retried without waiting for an online event', () => {
+  assert.match(html, /setInterval\(\(\)=>\{ if\(currentUser&&navigator\.onLine&&!isSynchronizing&&syncablePendingSales\(\)\.length\)synchronizePendingSales\(\); \},syncRetryMs\);/);
+  assert.match(html, /document\.addEventListener\('visibilitychange'/);
+});
+
+test('deletions target a single date instead of rewriting all sales', () => {
+  assert.match(html, /request\(`\$\{salesEndpoint\}\?date=\$\{encodeURIComponent\(date\)\}`,\{method:'DELETE'\}\)/);
 });
 
 test('authentication events are merged into the visible audit trail', () => {

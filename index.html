@@ -102,7 +102,7 @@
   <div id="toast" class="toast hidden" role="status"></div>
 
   <script type="module">
-    import { clearOfflineSession, enqueuePendingSale, listPendingSales, loadOfflineSnapshot, removePendingSale, saveOfflineSnapshot } from '/assets/offline-store.js';
+    import { clearOfflineSnapshot, enqueuePendingSale, listPendingSales, loadOfflineSnapshot, markPendingSalesRejected, removePendingSales, saveOfflineSnapshot } from '/assets/offline-store.js';
     import { paginate } from '/assets/pagination.js';
     const authEndpoint = '/.netlify/functions/auth';
     const salesEndpoint = '/.netlify/functions/sales';
@@ -131,7 +131,9 @@
     let capabilities = { viewGlobalDashboard:false, viewAudit:false, manageProducts:false };
     let isSaving = false;
     let isSynchronizing = false;
-    let lastSaveQueued = false;
+    let syncRequested = false;
+    const requestTimeoutMs = 12000;
+    const syncRetryMs = 30000;
     let salesPage = 1;
     let mySalesPage = 1;
     let auditPage = 1;
@@ -153,6 +155,8 @@
     Object.assign(translations.en,{salesRecovery:'Sales recovery',salesRecoveryHint:'Restore a backup or a bulk deletion detected in the audit trail.',salesCount:'Sales',restoreBackup:'Restore',emptyBackups:'No recovery source containing sales.',confirmRestoreBackup:'Restore {count} sale(s) from this source? A safety copy will be created before restoration.',salesRecovered:'{count} sale(s) restored.',backup_not_found:'This recovery source is missing or invalid.',sales_recovered:'Sales restored',recoveryDetail:'{count} sale(s) recovered from the {date} source.',audit_deleted_batch:'Bulk deletion detected in the audit trail',before_sales_update:'Backup before update',before_product_structure_update:'Backup before product update'});
     Object.assign(translations.fr,{offlineMode:'Hors ligne · données locales disponibles',offlinePending:'Hors ligne · {count} modification(s) en attente',syncingPending:'Synchronisation de {count} modification(s)…',syncComplete:'Synchronisation terminée',syncFailed:'Synchronisation interrompue · {count} modification(s) en attente',syncConflict:'Synchronisation suspendue : les produits ont changé sur le serveur.',retrySync:'Réessayer',savedLocally:'Vente enregistrée localement. Elle sera synchronisée automatiquement.',offlineRestricted:'Cette action nécessite une connexion.',pendingSync:'En attente de synchronisation',previousPage:'Précédent',nextPage:'Suivant',pageStatus:'Page {page} sur {total}'});
     Object.assign(translations.en,{offlineMode:'Offline · local data available',offlinePending:'Offline · {count} pending change(s)',syncingPending:'Synchronizing {count} change(s)…',syncComplete:'Synchronization complete',syncFailed:'Synchronization interrupted · {count} pending change(s)',syncConflict:'Synchronization paused: products changed on the server.',retrySync:'Retry',savedLocally:'Sale saved locally. It will synchronize automatically.',offlineRestricted:'This action requires a connection.',pendingSync:'Pending synchronization',previousPage:'Previous',nextPage:'Next',pageStatus:'Page {page} of {total}'});
+    Object.assign(translations.fr,{onlinePending:'{count} modification(s) en attente de synchronisation',syncRejected:'{count} vente(s) refusée(s) par le serveur · touchez Réessayer ou corrigez-les',syncRejectedLabel:'Refusée par le serveur',sessionExpiredPending:'Session expirée. {count} vente(s) restent enregistrées sur cet appareil et seront envoyées après la connexion.',product_conflict:'Les produits ont changé sur le serveur.',syncBeforeProducts:'Synchronisez d’abord les ventes en attente avant de modifier les produits.'});
+    Object.assign(translations.en,{onlinePending:'{count} change(s) waiting to synchronize',syncRejected:'{count} sale(s) rejected by the server · tap Retry or correct them',syncRejectedLabel:'Rejected by the server',sessionExpiredPending:'Session expired. {count} sale(s) remain stored on this device and will be sent after you sign in.',product_conflict:'Products changed on the server.',syncBeforeProducts:'Synchronize pending sales before changing products.'});
     Object.assign(translations.fr,{auditHint:'Journal horodaté des connexions, déconnexions, créations, modifications et suppressions.',user_login:'Connexion',user_logout:'Déconnexion',loginAuditDetail:'Session ouverte sur {device}.',logoutAuditDetail:'Session fermée sur {device}.',unknownDevice:'appareil inconnu'});
     Object.assign(translations.en,{auditHint:'Timestamped log of sign-ins, sign-outs, creations, updates and deletions.',user_login:'Sign-in',user_logout:'Sign-out',loginAuditDetail:'Session opened on {device}.',logoutAuditDetail:'Session closed on {device}.',unknownDevice:'unknown device'});
 
@@ -165,12 +169,24 @@
     function setSync(key){ $('#syncStatus').textContent=t(key); }
     function cacheCurrentState(){ if(currentUser)saveOfflineSnapshot({user:currentUser,state,audit,capabilities}); }
     function pendingSales(){ return listPendingSales(currentUser?.id); }
+    function syncablePendingSales(){ return pendingSales().filter(mutation=>!mutation.error); }
+    async function request(url,options={}){ const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),requestTimeoutMs); try { return await fetch(url,{credentials:'same-origin',...options,signal:controller.signal}); } finally { clearTimeout(timer); } }
+    function renderAll(){ renderEntry(); renderDashboard(); renderAudit(); }
+    function remapPendingUnits(fromProducts,toProducts,units){ if(JSON.stringify(fromProducts)===JSON.stringify(toProducts))return units; const byName=new Map((fromProducts??[]).map((name,index)=>[name,Number(units[index])||0])); if([...byName].some(([name,value])=>value>0&&!toProducts.includes(name)))return null; return toProducts.map(name=>byName.get(name)??0); }
+    function withPendingSales(serverState){
+      const queue=pendingSales(); if(!queue.length)return serverState;
+      const entries=new Map(serverState.entries.map(entry=>[entry.date,entry]));
+      queue.forEach(mutation=>{ const units=remapPendingUnits(mutation.products,serverState.products,mutation.units); if(!units)return; const existing=entries.get(mutation.date); entries.set(mutation.date,{...existing,date:mutation.date,units,createdBy:existing?.createdBy??{id:currentUser?.id,name:currentUser?.name,email:currentUser?.email},createdAt:existing?.createdAt??mutation.queuedAt,pendingSync:true,syncError:mutation.error}); });
+      return {...serverState,entries:[...entries.values()].sort((a,b)=>b.date.localeCompare(a.date))};
+    }
+    function applyServerPayload(payload){ state=withPendingSales({products:payload.products,entries:payload.entries}); audit=mergeAuditEvents(payload.audit??[]); applyCapabilities(payload.capabilities); cacheCurrentState(); }
+    function handleUnauthorized(){ clearOfflineSnapshot(currentUser?.id); const count=pendingSales().length; state=structuredClone(defaultState); audit=[]; showAuth(); if(count)$('#authMessage').textContent=t('sessionExpiredPending',{count}); }
     function showConnectionState(kind,key,values={}){
       const banner=$('#connectionBanner'); banner.classList.remove('hidden','error','syncing'); banner.classList.toggle('error',kind==='error'); banner.classList.toggle('syncing',kind==='syncing');
       const message=t(key,values); $('#connectionMessage').textContent=message; $('#retrySyncBtn').classList.toggle('hidden',kind==='offline'&&!navigator.onLine); $('#syncStatus').textContent=message;
     }
     function hideConnectionState(){ $('#connectionBanner').classList.add('hidden'); setSync('saved'); }
-    function setOfflineState(){ const count=pendingSales().length; showConnectionState('offline',count?'offlinePending':'offlineMode',{count}); }
+    function setOfflineState(){ const rejected=pendingSales().length-syncablePendingSales().length; if(rejected)return showConnectionState('error','syncRejected',{count:rejected}); const count=syncablePendingSales().length; showConnectionState('offline',!count?'offlineMode':navigator.onLine?'onlinePending':'offlinePending',{count}); }
     function paginationHTML(result,scope){
       if(result.totalPages<=1)return '';
       return `<button class="secondary" data-page-scope="${scope}" data-page="${result.currentPage-1}" ${result.currentPage===1?'disabled':''}>${t('previousPage')}</button><span>${t('pageStatus',{page:result.currentPage,total:result.totalPages})}</span><button class="secondary" data-page-scope="${scope}" data-page="${result.currentPage+1}" ${result.currentPage===result.totalPages?'disabled':''}>${t('nextPage')}</button>`;
@@ -200,12 +216,14 @@
     }
 
     async function checkSession(){
-      try { const response=await fetch(authEndpoint,{credentials:'same-origin'}); if(!response.ok){ const cached=loadOfflineSnapshot(); clearOfflineSession(cached?.user?.id); await loadSetupStatus(); return showAuth(); } const payload=await response.json(); enterApp(payload.user); await loadSales(); }
-      catch {
-        const cached=loadOfflineSnapshot();
-        if(cached){ enterApp(cached.user,true); renderCachedSnapshot(cached); setOfflineState(); }
-        else { await loadSetupStatus(); showAuth(); }
-      }
+      // Show the last known data immediately, then confirm the session in the background.
+      const cached=loadOfflineSnapshot();
+      if(cached){ enterApp(cached.user,true); renderCachedSnapshot(cached); if(pendingSales().length)setOfflineState(); }
+      let response;
+      try { response=await request(authEndpoint); } catch { response=null; }
+      if(response?.status===401){ if(cached)return handleUnauthorized(); await loadSetupStatus(); return showAuth(); }
+      if(!response?.ok){ if(cached)return setOfflineState(); await loadSetupStatus(); return showAuth(); }
+      const payload=await response.json(); enterApp(payload.user); await loadSales();
     }
     async function loadSetupStatus(){
       try { const response=await fetch(`${authEndpoint}?setup=1`,{credentials:'same-origin'}); const payload=await response.json(); setupRequired=Boolean(payload.setupRequired); }
@@ -235,49 +253,69 @@
       finally { $('#authSubmit').disabled=false; }
     }
 
-    async function logout(){ const userId=currentUser?.id; await fetch(authEndpoint,{method:'DELETE',credentials:'same-origin'}).catch(()=>{}); clearOfflineSession(userId); state=structuredClone(defaultState); audit=[]; authenticationAudit=[]; showAuth(); }
+    async function logout(){
+      if(syncablePendingSales().length)await synchronizePendingSales();
+      const userId=currentUser?.id; await request(authEndpoint,{method:'DELETE'}).catch(()=>{}); clearOfflineSnapshot(userId); state=structuredClone(defaultState); audit=[]; authenticationAudit=[]; showAuth();
+    }
 
     async function loadSales(){
-      setSync('saving');
-      try { const response=await fetch(salesEndpoint,{credentials:'same-origin'}); if(response.status===401){clearOfflineSession(currentUser?.id);return showAuth();} if(!response.ok) throw new Error(); const payload=await response.json(); state={products:payload.products,entries:payload.entries}; audit=payload.audit??[]; applyCapabilities(payload.capabilities); await loadAuthenticationAudit(); renderEntry(); renderDashboard(); renderAudit(); restorePreferredView(); cacheCurrentState(); if(pendingSales().length)await synchronizePendingSales();else hideConnectionState(); }
-      catch { const cached=loadOfflineSnapshot(); if(cached?.user?.id===currentUser?.id)renderCachedSnapshot(cached); setOfflineState(); }
+      if(!syncablePendingSales().length)setSync('saving');
+      try { const response=await request(salesEndpoint); if(response.status===401)return handleUnauthorized(); if(!response.ok) throw new Error(); const payload=await response.json(); applyServerPayload(payload); await loadAuthenticationAudit(); renderAll(); restorePreferredView(); if(syncablePendingSales().length)await synchronizePendingSales();else if(pendingSales().length)setOfflineState();else hideConnectionState(); }
+      catch { setOfflineState(); }
     }
 
-    function saveOfflineDraft(nextState,mutation){
+    // Every sale goes through the local queue first: the screen updates instantly and nothing
+    // is lost if the network drops mid-request. The queue is replayed idempotently by date.
+    function queueSale(mutation){
       if(!enqueuePendingSale(currentUser?.id,mutation)){showToast(t('saveError'));return false;}
-      state={...nextState,entries:nextState.entries.map(entry=>entry.date===mutation.date?{...entry,pendingSync:true}:entry)}; lastSaveQueued=true; renderEntry(); renderDashboard(); renderAudit(); cacheCurrentState(); setOfflineState(); return true;
+      state=withPendingSales(state); renderAll(); cacheCurrentState();
+      if(navigator.onLine)synchronizePendingSales(); else setOfflineState();
+      return true;
     }
 
-    async function saveState(nextState=state,{offlineMutation=null}={}){
+    async function saveState(nextState=state){
       if(isSaving)return false;
-      lastSaveQueued=false;
-      if(!navigator.onLine)return offlineMutation?saveOfflineDraft(nextState,offlineMutation):(showToast(t('offlineRestricted')),false);
-      isSaving=true; $('#saveBtn').disabled=true;
-      setSync('saving');
-      let reachedServer=false;
-      try { const response=await fetch(salesEndpoint,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(nextState)}); reachedServer=true; if(response.status===401){clearOfflineSession(currentUser?.id);return showAuth();} const payload=await response.json().catch(()=>({})); if(!response.ok){showToast(t(payload.error||'saveError'));setSync('saveError');return false;} state={products:payload.products,entries:payload.entries}; audit=mergeAuditEvents(payload.audit??[]); applyCapabilities(payload.capabilities); renderDashboard(); renderAudit(); renderMySales(); cacheCurrentState(); hideConnectionState(); return true; }
-      catch { if(!reachedServer&&offlineMutation)return saveOfflineDraft(nextState,offlineMutation); setSync('saveError'); return false; }
+      if(!navigator.onLine){showToast(t('offlineRestricted'));return false;}
+      isSaving=true; $('#saveBtn').disabled=true; setSync('saving');
+      try { const response=await request(salesEndpoint,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(nextState)}); if(response.status===401){handleUnauthorized();return false;} const payload=await response.json().catch(()=>({})); if(!response.ok){showToast(t(payload.error||'saveError'));setSync('saveError');return false;} applyServerPayload(payload); renderDashboard(); renderAudit(); renderMySales(); if(!pendingSales().length)hideConnectionState(); return true; }
+      catch { showToast(t('offlineRestricted')); setSync('saveError'); return false; }
       finally { isSaving=false; $('#saveBtn').disabled=false; }
     }
-
-    async function synchronizePendingSales(){
-      if(isSynchronizing||!currentUser||!navigator.onLine)return;
-      const queue=pendingSales(); if(!queue.length){hideConnectionState();return;}
-      isSynchronizing=true; showConnectionState('syncing','syncingPending',{count:queue.length}); $('#retrySyncBtn').disabled=true;
-      try {
-        for(const mutation of queue){
-          const latestResponse=await fetch(salesEndpoint,{credentials:'same-origin'}); if(latestResponse.status===401){clearOfflineSession(currentUser?.id);showAuth();return;} if(!latestResponse.ok)throw new Error('network');
-          const latest=await latestResponse.json();
-          if(JSON.stringify(latest.products)!==JSON.stringify(mutation.products))throw new Error('product_conflict');
-          const draft={products:latest.products,entries:structuredClone(latest.entries)}; const existing=draft.entries.findIndex(entry=>entry.date===mutation.date); const entry={date:mutation.date,units:mutation.units}; if(existing>=0)draft.entries[existing]=entry;else draft.entries.push(entry); draft.entries.sort((a,b)=>b.date.localeCompare(a.date));
-          const saveResponse=await fetch(salesEndpoint,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(draft)}); const payload=await saveResponse.json().catch(()=>({})); if(!saveResponse.ok)throw new Error(payload.error||'network');
-          removePendingSale(currentUser.id,mutation.id); state={products:payload.products,entries:payload.entries}; audit=mergeAuditEvents(payload.audit??[]); applyCapabilities(payload.capabilities); cacheCurrentState();
-        }
-        renderEntry(); renderDashboard(); renderAudit(); showConnectionState('syncing','syncComplete'); setTimeout(()=>{if(!pendingSales().length)hideConnectionState();},1800);
-      } catch(error){ showConnectionState('error',error.message==='product_conflict'?'syncConflict':'syncFailed',{count:pendingSales().length}); }
-      finally { isSynchronizing=false; $('#retrySyncBtn').disabled=false; }
+    // Product changes rewrite every entry, so they must start from the server's current data
+    // and only run once the local queue is empty.
+    async function latestServerStateOrWarn(){
+      if(!navigator.onLine){showToast(t('offlineRestricted'));return null;}
+      if(syncablePendingSales().length){showToast(t('syncBeforeProducts'));synchronizePendingSales();return null;}
+      try { return await latestServerState(); } catch { showToast(t('network_error')); return null; }
     }
-    async function resumeOnline(){ if(!currentUser||!navigator.onLine)return; if(pendingSales().length)await synchronizePendingSales();else await loadSales(); }
+    async function latestServerState(){
+      const response=await request(salesEndpoint); if(response.status===401){handleUnauthorized();return null;} if(!response.ok)throw new Error('network');
+      const payload=await response.json(); return {products:payload.products,entries:payload.entries};
+    }
+
+    async function synchronizePendingSales({includeRejected=false}={}){
+      if(!currentUser)return;
+      if(isSynchronizing){syncRequested=true;return;}
+      const userId=currentUser.id;
+      const queue=includeRejected?pendingSales():syncablePendingSales(); if(!queue.length){if(!pendingSales().length)hideConnectionState();else setOfflineState();return;}
+      isSynchronizing=true; syncRequested=false; showConnectionState('syncing','syncingPending',{count:queue.length}); $('#retrySyncBtn').disabled=true;
+      try {
+        const sales=queue.map(({id,date,units,products})=>({id,date,units,products}));
+        const response=await request(salesEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sales})});
+        if(response.status===401){handleUnauthorized();return;}
+        const payload=await response.json().catch(()=>({})); if(!response.ok)throw new Error(payload.error||'network');
+        if(currentUser?.id!==userId)return;
+        removePendingSales(userId,(payload.applied??[]).map(item=>item.id));
+        markPendingSalesRejected(userId,payload.rejected??[]);
+        applyServerPayload(payload); renderAll(); if(payload.rejected?.length)showToast(t(payload.rejected[0].error));
+        if(pendingSales().length)setOfflineState(); else { showConnectionState('syncing','syncComplete'); setTimeout(()=>{if(!pendingSales().length)hideConnectionState();},1800); }
+      } catch { if(currentUser?.id===userId)showConnectionState('error','syncFailed',{count:syncablePendingSales().length}); }
+      finally { isSynchronizing=false; $('#retrySyncBtn').disabled=false; if(syncRequested&&currentUser?.id===userId&&syncablePendingSales().length)synchronizePendingSales(); }
+    }
+    async function resumeOnline(){ if(!currentUser)return; await loadSales(); }
+    async function retrySync(){ if(!currentUser)return; if(pendingSales().length)await synchronizePendingSales({includeRejected:true}); await loadSales(); }
+    setInterval(()=>{ if(currentUser&&navigator.onLine&&!isSynchronizing&&syncablePendingSales().length)synchronizePendingSales(); },syncRetryMs);
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&currentUser&&navigator.onLine)loadSales(); });
 
     function currentFormUnits(){ return [...document.querySelectorAll('.units')].map(input=>Math.max(0,Number(input.value)||0)); }
     function renderEntry(formUnits=[]){
@@ -285,7 +323,7 @@
       $('#productGrid').innerHTML=state.products.map((product,index)=>`<div class="product-row ${canManageProducts?'':'readonly'}">${canManageProducts?`<input class="product-name" aria-label="${escapeHTML(t('products'))} ${index+1}" value="${escapeHTML(product)}" data-name="${index}">`:`<span class="product-name product-label">${escapeHTML(product)}</span>`}<input class="units" aria-label="${escapeHTML(product)}" type="number" min="0" step="1" value="${Number(formUnits[index])||0}" data-units="${index}">${canManageProducts?`<button class="remove-product" data-remove-product="${index}" title="${escapeHTML(t('removeProduct'))}" aria-label="${escapeHTML(t('removeProduct'))}: ${escapeHTML(product)}" ${state.products.length===1?'disabled':''}>×</button>`:''}</div>`).join('');
       $('#addProductBtn').disabled=!canManageProducts||state.products.length>=50;
       document.querySelectorAll('.units').forEach(input=>input.addEventListener('input',updateLive));
-      document.querySelectorAll('.product-name').forEach(input=>input.addEventListener('change',async(event)=>{ const index=Number(event.target.dataset.name); const units=currentFormUnits(); const draft=structuredClone(state); draft.products[index]=event.target.value.trim()||t('newProductName',{number:index+1}); await saveState(draft); renderEntry(units); }));
+      document.querySelectorAll('.product-name').forEach(input=>input.addEventListener('change',async(event)=>{ const index=Number(event.target.dataset.name); const units=currentFormUnits(); const draft=await latestServerStateOrWarn(); if(!draft)return renderEntry(units); if(draft.products[index]!==state.products[index]){showToast(t('product_conflict'));await loadSales();return;} draft.products[index]=event.target.value.trim()||t('newProductName',{number:index+1}); await saveState(draft); renderEntry(units); }));
       document.querySelectorAll('[data-remove-product]').forEach(button=>button.addEventListener('click',()=>removeProduct(Number(button.dataset.removeProduct))));
       updateLive(); renderMySales();
     }
@@ -294,7 +332,7 @@
     async function addProduct(){
       if(!capabilities.manageProducts){showToast(t('product_management_forbidden'));return;}
       if(state.products.length>=50){showToast(t('maximumProducts'));return;}
-      const formUnits=currentFormUnits(); const draft=structuredClone(state);
+      const formUnits=currentFormUnits(); const draft=await latestServerStateOrWarn(); if(!draft)return;
       draft.products.push(t('newProductName',{number:draft.products.length+1})); draft.entries= draft.entries.map(entry=>({...entry,units:[...entry.units,0]}));
       if(await saveState(draft)){renderEntry([...formUnits,0]);showToast(t('productAdded'));}
     }
@@ -302,20 +340,32 @@
       if(!capabilities.manageProducts){showToast(t('product_management_forbidden'));return;}
       if(state.products.length<=1){showToast(t('minimumOneProduct'));return;}
       const product=state.products[index]; if(!confirm(t('confirmRemoveProduct',{product})))return;
-      const formUnits=currentFormUnits(); formUnits.splice(index,1); const draft=structuredClone(state);
+      const formUnits=currentFormUnits(); formUnits.splice(index,1); const draft=await latestServerStateOrWarn(); if(!draft)return;
+      if(draft.products[index]!==product){showToast(t('product_conflict'));await loadSales();return;}
       draft.products.splice(index,1); draft.entries=draft.entries.map(entry=>({...entry,units:entry.units.filter((_,unitIndex)=>unitIndex!==index)}));
       if(await saveState(draft)){renderEntry(formUnits);showToast(t('productRemoved'));}
     }
-    async function saveEntry(){ const date=$('#saleDate').value; if(!date){showToast(t('chooseDate'));return;} const units=[...document.querySelectorAll('.units')].map(input=>Math.max(0,Number(input.value)||0)); const draft=structuredClone(state); const existing=draft.entries.findIndex(entry=>entry.date===date); const previous=existing>=0?draft.entries[existing]:null; const entry={date,units,createdBy:previous?.createdBy??{id:currentUser.id,name:currentUser.name,email:currentUser.email},createdAt:previous?.createdAt??new Date().toISOString(),pendingSync:!navigator.onLine}; if(existing>=0)draft.entries[existing]=entry;else draft.entries.push(entry); draft.entries.sort((a,b)=>b.date.localeCompare(a.date)); const mutation={date,units,products:[...state.products]}; if(await saveState(draft,{offlineMutation:mutation})){showToast(t(lastSaveQueued?'savedLocally':'saleSaved'));setView(capabilities.viewGlobalDashboard?'dashboard':'entry');} }
-    async function deleteEntry(date){ if(!capabilities.viewGlobalDashboard){showToast(t('sale_delete_forbidden'));return;} if(!confirm(t('confirmDelete')))return; const draft={...structuredClone(state),entries:state.entries.filter(entry=>entry.date!==date)}; if(await saveState(draft))showToast(t('saleDeleted')); }
+    function saveEntry(){
+      const date=$('#saleDate').value; if(!date){showToast(t('chooseDate'));return;}
+      const units=currentFormUnits(); const online=navigator.onLine;
+      if(queueSale({date,units,products:[...state.products]})){showToast(t(online?'saleSaved':'savedLocally'));setView(capabilities.viewGlobalDashboard?'dashboard':'entry');}
+    }
+    async function deleteEntry(date){
+      if(!capabilities.viewGlobalDashboard){showToast(t('sale_delete_forbidden'));return;} if(!confirm(t('confirmDelete')))return;
+      const pending=pendingSales().filter(mutation=>mutation.date===date);
+      if(pending.length){ removePendingSales(currentUser.id,pending.map(mutation=>mutation.id)); state={...state,entries:state.entries.filter(entry=>entry.date!==date||!entry.pendingSync)}; renderAll(); cacheCurrentState(); if(!pendingSales().length)hideConnectionState(); if(!navigator.onLine){showToast(t('saleDeleted'));return;} }
+      if(!navigator.onLine){showToast(t('offlineRestricted'));return;}
+      try { const response=await request(`${salesEndpoint}?date=${encodeURIComponent(date)}`,{method:'DELETE'}); if(response.status===401){handleUnauthorized();return;} const payload=await response.json().catch(()=>({})); if(!response.ok){showToast(t(payload.error||'saveError'));return;} applyServerPayload(payload); renderAll(); showToast(t('saleDeleted')); }
+      catch { showToast(t('network_error')); }
+    }
 
     function entryAuthor(entry){ return entry.createdBy??{name:t('unknownUser'),email:''}; }
-    function authorCell(entry){ const author=entryAuthor(entry); return `<span class="sale-author">${escapeHTML(author.name||t('unknownUser'))}</span>${author.email?`<div class="audit-detail">${escapeHTML(author.email)}</div>`:''}${entry.pendingSync?`<span class="pending-label">${t('pendingSync')}</span>`:''}`; }
+    function authorCell(entry){ const author=entryAuthor(entry); return `<span class="sale-author">${escapeHTML(author.name||t('unknownUser'))}</span>${author.email?`<div class="audit-detail">${escapeHTML(author.email)}</div>`:''}${entry.pendingSync?`<span class="pending-label">${t(entry.syncError?'syncRejectedLabel':'pendingSync')}</span>`:''}`; }
     function productDetails(entry){ return state.products.map((name,index)=>`${escapeHTML(name)}: <strong>${Number(entry.units[index]||0).toLocaleString(locale())}</strong>`).join(' · '); }
     function renderMySales(){
       if(currentUser?.role!=='staff')return;
       const page=paginate(state.entries,mySalesPage,mySalesPageSize); mySalesPage=page.currentPage;
-      $('#mySalesBody').innerHTML=page.items.length?page.items.map(entry=>`<tr class="${entry.pendingSync?'pending-row':''}"><td>${formatDate(entry.date)}${entry.pendingSync?`<div class="pending-label">${t('pendingSync')}</div>`:''}</td><td class="sale-products">${productDetails(entry)}</td><td><strong>${entry.units.reduce((sum,value)=>sum+value,0).toLocaleString(locale())}</strong></td></tr>`).join(''):`<tr><td colspan="3" class="empty">${t('emptySales')}</td></tr>`;
+      $('#mySalesBody').innerHTML=page.items.length?page.items.map(entry=>`<tr class="${entry.pendingSync?'pending-row':''}"><td>${formatDate(entry.date)}${entry.pendingSync?`<div class="pending-label">${t(entry.syncError?'syncRejectedLabel':'pendingSync')}</div>`:''}</td><td class="sale-products">${productDetails(entry)}</td><td><strong>${entry.units.reduce((sum,value)=>sum+value,0).toLocaleString(locale())}</strong></td></tr>`).join(''):`<tr><td colspan="3" class="empty">${t('emptySales')}</td></tr>`;
       $('#mySalesPagination').innerHTML=paginationHTML(page,'my-sales');
     }
 
@@ -460,7 +510,7 @@
     $('#staffForm').addEventListener('submit',createStaff);
     $('#usersBody').addEventListener('click',event=>{const button=event.target.closest('[data-access-user]');if(button)setUserAccess(button.dataset.accessUser,button.dataset.accessActive==='true');}); $('#usersBody').addEventListener('change',event=>{const select=event.target.closest('[data-role-user]');if(select)setUserRole(select.dataset.roleUser,select.value,select);});
     $('#recoveryBody').addEventListener('click',event=>{const button=event.target.closest('[data-restore-backup]');if(button)restoreBackup(button.dataset.restoreBackup);});
-    $('#retrySyncBtn').addEventListener('click',resumeOnline);
+    $('#retrySyncBtn').addEventListener('click',retrySync);
     document.addEventListener('click',event=>{const button=event.target.closest('[data-page-scope]');if(!button)return;const page=Math.max(1,Number(button.dataset.page)||1);if(button.dataset.pageScope==='sales'){salesPage=page;renderAllSales();}if(button.dataset.pageScope==='my-sales'){mySalesPage=page;renderMySales();}if(button.dataset.pageScope==='audit'){auditPage=page;renderAudit();}if(button.dataset.pageScope==='monthly'){monthlyPage=page;renderMonthly(dashboardPeriodData().entries);}button.closest('.panel')?.scrollIntoView({behavior:'smooth',block:'start'});});
     document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>setView(tab.dataset.view)));
     window.addEventListener('online',resumeOnline); window.addEventListener('offline',()=>{if(currentUser)setOfflineState();});

@@ -1,9 +1,10 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "node:crypto";
 import { createBackup, listRecoverySnapshots, readRecoverySnapshot } from "../lib/backup.mjs";
-import { canManageProducts, canViewAudit, canViewGlobalDashboard } from "../lib/permissions.mjs";
+import { canCreateSales, canDeleteSales, canManageProducts, canViewAudit, canViewGlobalDashboard } from "../lib/permissions.mjs";
 import { listAuditRecoveryCandidates, recoverAuditEntries, selectAuditRecoveryCandidate } from "../lib/recovery.mjs";
 import { authorizeSalesMutation, mergeStaffSales, ownsSale } from "../lib/sales-access.mjs";
+import { applySaleUpserts, maxSalesPerBatch, validSaleDate } from "../lib/sales-upsert.mjs";
 import { getSession } from "../lib/session.mjs";
 
 const store = getStore("daily-sales-tracker");
@@ -231,6 +232,57 @@ async function handleRecovery(request, session) {
   return Response.json(clientPayload(restored, audit, session));
 }
 
+async function commitSalesChange({ previous, next, session, reason }) {
+  const existingAudit = (await store.get(auditKey(), { type: "json" })) ?? [];
+  const audit = [...buildAudit(previous, next, session), ...existingAudit].slice(0, 500);
+  try {
+    await createBackup({ reason, data: previous, audit: existingAudit, session });
+  } catch {
+    return null;
+  }
+  await store.setJSON(dataKey(), next);
+  await store.setJSON(auditKey(), audit);
+  return audit;
+}
+
+async function handleSaleUpserts(request, session) {
+  const body = await request.json().catch(() => null);
+  const sales = Array.isArray(body?.sales) ? body.sales : null;
+  if (!sales || sales.length < 1 || sales.length > maxSalesPerBatch) {
+    return Response.json({ error: "invalid_sales_data" }, { status: 400 });
+  }
+  if (!canCreateSales(session)) return Response.json({ error: "forbidden" }, { status: 403 });
+
+  const previous = await loadData(session);
+  const result = applySaleUpserts({ session, previous, sales, timestamp: new Date().toISOString() });
+  const { applied, rejected } = result;
+  if (!applied.length) {
+    const audit = (await store.get(auditKey(), { type: "json" })) ?? [];
+    return Response.json({ ...clientPayload(previous, audit, session), applied, rejected }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  const next = { products: previous.products, entries: result.entries };
+  const audit = await commitSalesChange({ previous, next, session, reason: "before_sales_update" });
+  if (!audit) return Response.json({ error: "backup_failed" }, { status: 503 });
+  return Response.json({ ...clientPayload(next, audit, session), applied, rejected }, { headers: { "Cache-Control": "no-store" } });
+}
+
+async function handleSaleDeletion(url, session) {
+  if (!canDeleteSales(session)) return Response.json({ error: "sale_delete_forbidden" }, { status: 403 });
+  const date = url.searchParams.get("date");
+  if (!validSaleDate(date)) return Response.json({ error: "invalid_sales_data" }, { status: 400 });
+
+  const previous = await loadData(session);
+  const next = { products: previous.products, entries: previous.entries.filter((entry) => entry.date !== date) };
+  if (next.entries.length === previous.entries.length) {
+    const audit = (await store.get(auditKey(), { type: "json" })) ?? [];
+    return Response.json(clientPayload(previous, audit, session), { headers: { "Cache-Control": "no-store" } });
+  }
+  const audit = await commitSalesChange({ previous, next, session, reason: "before_sales_update" });
+  if (!audit) return Response.json({ error: "backup_failed" }, { status: 503 });
+  return Response.json(clientPayload(next, audit, session), { headers: { "Cache-Control": "no-store" } });
+}
+
 export default async (request) => {
   const session = await getSession(request);
   if (!session) return Response.json({ error: "unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
@@ -249,8 +301,11 @@ export default async (request) => {
     }
   }
 
+  if (request.method === "POST") return handleSaleUpserts(request, session);
+  if (request.method === "DELETE") return handleSaleDeletion(url, session);
+
   if (request.method !== "PUT") {
-    return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, PUT" } });
+    return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, POST, PUT, DELETE" } });
   }
 
   const next = await request.json().catch(() => null);
