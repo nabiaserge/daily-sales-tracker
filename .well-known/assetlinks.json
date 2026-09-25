@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.nabia.suiviventes",
+      "sha256_cert_fingerprints": [
+        "37:53:51:8D:48:C0:96:99:00:88:00:56:88:BC:82:42:A9:5D:07:58:E5:2B:A4:8A:93:BC:EE:F1:61:36:9B:70"
+      ]
+    }
+  }
+]
