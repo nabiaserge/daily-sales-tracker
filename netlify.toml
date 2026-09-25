@@ -1,5 +1,5 @@
 [build]
-  command = "mkdir -p dist/assets && cp index.html manifest.webmanifest privacy.html service-worker.js dist/ && cp assets/*.js dist/assets/"
+  command = "mkdir -p dist/assets dist/.well-known && cp index.html manifest.webmanifest privacy.html service-worker.js dist/ && cp assets/*.js dist/assets/ && cp .well-known/assetlinks.json dist/.well-known/"
   publish = "dist"
   functions = "netlify/functions"
 
@@ -7,3 +7,10 @@
   for = "/service-worker.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+# Digital Asset Links: lets Android share saved sign-in credentials between the site and the app.
+[[headers]]
+  for = "/.well-known/assetlinks.json"
+  [headers.values]
+    Content-Type = "application/json"
+    Access-Control-Allow-Origin = "*"

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Suivi Ventes</string>
+    <!-- Links the app to the site so Android autofill offers the same saved sign-in credentials. -->
+    <string name="asset_statements" translatable="false">[{\"include\": \"https://suivi-ventes.netlify.app/.well-known/assetlinks.json\"}]</string>
 </resources>
