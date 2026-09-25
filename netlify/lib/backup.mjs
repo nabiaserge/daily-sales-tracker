@@ -22,7 +22,20 @@ export async function listRecoverySnapshots(limit = 20) {
 export async function readRecoverySnapshot(key) {
   if (typeof key !== "string" || !key.startsWith("backup:")) return null;
   const snapshot = await store.get(key, { type: "json" });
-  return isRestorableSnapshot(snapshot) ? snapshot : null;
+  return !snapshot?.dataset && isRestorableSnapshot(snapshot) ? snapshot : null;
+}
+
+// Backups for the production and expense datasets use their own index, so they never
+// appear among (or push out) the sales recovery candidates.
+export async function createDatasetBackup({ dataset, reason, data, audit = null, session }) {
+  const createdAt = new Date().toISOString();
+  const key = `backup:${dataset}:${createdAt}:${randomUUID()}`;
+  const actor = { id: session.userId, name: session.name, email: session.email };
+  await store.setJSON(key, { schemaVersion: 1, dataset, createdAt, reason, actor, data, ...(audit ? { audit } : {}) });
+  const indexKey = `backups:${dataset}:index`;
+  const index = (await store.get(indexKey, { type: "json" })) ?? [];
+  await store.setJSON(indexKey, [{ key, createdAt, reason, actor, entryCount: data?.entries?.length ?? 0 }, ...index].slice(0, 200));
+  return key;
 }
 
 export async function createBackup({ reason, data, audit, session }) {

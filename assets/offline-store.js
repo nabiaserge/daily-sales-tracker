@@ -48,8 +48,57 @@ export function loadOfflineSnapshot() {
 export function clearOfflineSnapshot(userId) {
   try {
     localStorage.removeItem(ACTIVE_USER_KEY);
-    if (userId) localStorage.removeItem(`${SNAPSHOT_PREFIX}${userId}`);
+    if (userId) {
+      localStorage.removeItem(`${SNAPSHOT_PREFIX}${userId}`);
+      localStorage.removeItem(`${OPERATIONS_SNAPSHOT_PREFIX}${userId}`);
+    }
   } catch {}
+}
+
+// Production and expense records use the same offline pattern as sales: one queue per
+// record kind and user, deduplicated by the record key (date for production, id for expenses).
+const RECORD_QUEUE_PREFIX = 'sales-offline-records:';
+const OPERATIONS_SNAPSHOT_PREFIX = 'sales-offline-operations:';
+
+function recordQueueKey(kind, userId) {
+  return `${RECORD_QUEUE_PREFIX}${kind}:${userId}`;
+}
+
+export function listPendingRecords(kind, userId) {
+  if (!userId) return [];
+  const queue = readJSON(recordQueueKey(kind, userId), []);
+  return Array.isArray(queue) ? queue : [];
+}
+
+export function enqueuePendingRecord(kind, userId, record, keyField) {
+  if (!userId || !record?.[keyField]) return false;
+  const queue = listPendingRecords(kind, userId);
+  const nextRecord = { ...record, queueId: crypto.randomUUID(), queuedAt: new Date().toISOString() };
+  const existingIndex = queue.findIndex((item) => item[keyField] === record[keyField]);
+  if (existingIndex >= 0) queue[existingIndex] = nextRecord;
+  else queue.push(nextRecord);
+  return writeJSON(recordQueueKey(kind, userId), queue);
+}
+
+export function removePendingRecords(kind, userId, queueIds) {
+  const ids = new Set(queueIds);
+  return writeJSON(recordQueueKey(kind, userId), listPendingRecords(kind, userId).filter((item) => !ids.has(item.queueId)));
+}
+
+export function markPendingRecordsRejected(kind, userId, rejections) {
+  const errors = new Map(rejections.filter((item) => item?.queueId).map((item) => [item.queueId, item.error]));
+  const queue = listPendingRecords(kind, userId).map((item) => errors.has(item.queueId) ? { ...item, error: errors.get(item.queueId) } : item);
+  return writeJSON(recordQueueKey(kind, userId), queue);
+}
+
+export function saveOperationsSnapshot(userId, data) {
+  if (!userId) return false;
+  return writeJSON(`${OPERATIONS_SNAPSHOT_PREFIX}${userId}`, { ...data, savedAt: new Date().toISOString() });
+}
+
+export function loadOperationsSnapshot(userId) {
+  if (!userId) return null;
+  return readJSON(`${OPERATIONS_SNAPSHOT_PREFIX}${userId}`, null);
 }
 
 export function listPendingSales(userId) {

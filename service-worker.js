@@ -1,5 +1,5 @@
-const CACHE_NAME = 'suivi-ventes-shell-v3';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/privacy.html', '/assets/offline-store.js', '/assets/pagination.js'];
+const CACHE_NAME = 'suivi-ventes-shell-v4';
+const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/privacy.html', '/assets/offline-store.js', '/assets/pagination.js', '/assets/operations.js'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

@@ -1,10 +1,12 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "node:crypto";
-import { createBackup, listRecoverySnapshots, readRecoverySnapshot } from "../lib/backup.mjs";
-import { canCreateSales, canDeleteSales, canManageProducts, canViewAudit, canViewGlobalDashboard } from "../lib/permissions.mjs";
+import { createBackup, createDatasetBackup, listRecoverySnapshots, readRecoverySnapshot } from "../lib/backup.mjs";
+import { canCreateSales, canDeleteSales, canManageOperations, canManageProducts, canViewAudit, canViewGlobalDashboard } from "../lib/permissions.mjs";
 import { listAuditRecoveryCandidates, recoverAuditEntries, selectAuditRecoveryCandidate } from "../lib/recovery.mjs";
 import { authorizeSalesMutation, mergeStaffSales, ownsSale } from "../lib/sales-access.mjs";
 import { applySaleUpserts, maxSalesPerBatch, validSaleDate } from "../lib/sales-upsert.mjs";
+import { alignUnits } from "../lib/products.mjs";
+import { productionKey, realignProduction } from "../lib/operations.mjs";
 import { getSession } from "../lib/session.mjs";
 
 const store = getStore("daily-sales-tracker");
@@ -60,7 +62,8 @@ function clientPayload(data, audit, session) {
     capabilities: {
       viewGlobalDashboard: globalAccess,
       viewAudit: canViewAudit(session),
-      manageProducts: canManageProducts(session)
+      manageProducts: canManageProducts(session),
+      manageOperations: canManageOperations(session)
     }
   };
 }
@@ -69,18 +72,6 @@ function validDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
-}
-
-function alignUnits(previousProducts, nextProducts, units) {
-  if (previousProducts.length < nextProducts.length) {
-    return [...units, ...Array(nextProducts.length - previousProducts.length).fill(0)];
-  }
-  if (previousProducts.length > nextProducts.length) {
-    const removedIndex = previousProducts.findIndex((product, index) => product !== nextProducts[index]);
-    const index = removedIndex < 0 ? previousProducts.length - 1 : removedIndex;
-    return units.filter((_, unitIndex) => unitIndex !== index);
-  }
-  return units;
 }
 
 async function loadData(session) {
@@ -369,7 +360,21 @@ export default async (request) => {
     return Response.json({ error: "backup_failed" }, { status: 503 });
   }
 
+  // Production quantities are stored per product, so a product change must realign them too.
+  const productsChanged = JSON.stringify(previous.products) !== JSON.stringify(normalized.products);
+  const production = productsChanged ? await store.get(productionKey, { type: "json" }) : null;
+  if (production?.entries?.length) {
+    try {
+      await createDatasetBackup({ dataset: "production", reason: "before_product_structure_update", data: production, session });
+    } catch {
+      return Response.json({ error: "backup_failed" }, { status: 503 });
+    }
+  }
+
   await store.setJSON(dataKey(), normalized);
   await store.setJSON(auditKey(), audit);
+  if (production?.entries?.length) {
+    await store.setJSON(productionKey, { entries: realignProduction(production.entries, previous.products, normalized.products) });
+  }
   return Response.json(clientPayload(normalized, audit, session));
 };
