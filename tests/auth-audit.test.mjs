@@ -22,6 +22,17 @@ test("login and logout events store only public actor fields", async () => {
   assert.equal("token" in events[0].actor, false);
 });
 
+test("a password reset is logged with its target but never the password", async () => {
+  const store = memoryStore();
+  await appendAuthenticationEvent(store, { userId:"root-1", name:"Serge", email:"serge@example.com" }, "password_reset", {
+    target: { id:"user-2", name:"Awa", email:"awa@example.com" }
+  });
+  const [event] = await listAuthenticationEvents(store);
+  assert.equal(event.action, "password_reset");
+  assert.deepEqual(event.target, { id:"user-2", name:"Awa", email:"awa@example.com" });
+  assert.equal(JSON.stringify(event).includes("password\":"), false);
+});
+
 test("authentication audit retains the latest 500 events", async () => {
   const previous = Array.from({ length:500 }, (_, index) => ({ id:`event-${index}`, timestamp:new Date().toISOString() }));
   const store = memoryStore(previous);

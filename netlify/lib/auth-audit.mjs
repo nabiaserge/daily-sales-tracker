@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 export const authenticationAuditKey = "audit:authentication";
 
-export function createAuthenticationEvent(user, action, timestamp = new Date().toISOString()) {
+export function createAuthenticationEvent(user, action, timestamp = new Date().toISOString(), details = {}) {
   const event = {
     id: randomUUID(),
     timestamp,
@@ -12,15 +12,16 @@ export function createAuthenticationEvent(user, action, timestamp = new Date().t
       id: user.id ?? user.userId,
       name: user.name,
       email: user.email
-    }
+    },
+    ...details
   };
   if (user.deviceId) event.device = { id: user.deviceId, label: user.deviceLabel ?? "Appareil web" };
   return event;
 }
 
-export async function appendAuthenticationEvent(store, user, action) {
+export async function appendAuthenticationEvent(store, user, action, details = {}) {
   const existing = await store.get(authenticationAuditKey, { type: "json" });
-  const audit = [createAuthenticationEvent(user, action), ...(Array.isArray(existing) ? existing : [])].slice(0, 500);
+  const audit = [createAuthenticationEvent(user, action, undefined, details), ...(Array.isArray(existing) ? existing : [])].slice(0, 500);
   await store.setJSON(authenticationAuditKey, audit);
   return audit[0];
 }

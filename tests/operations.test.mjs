@@ -9,7 +9,17 @@ import {
   removeExpense,
   removeProduction
 } from "../netlify/lib/operations.mjs";
-import { canManageOperations } from "../netlify/lib/permissions.mjs";
+import { canManageOperations, canResetPassword } from "../netlify/lib/permissions.mjs";
+
+test("the SuperAdmin resets Admin and Staff passwords, an Admin only Staff passwords", () => {
+  assert.equal(canResetPassword({ role: "superadmin" }, "admin"), true);
+  assert.equal(canResetPassword({ role: "superadmin" }, "staff"), true);
+  assert.equal(canResetPassword({ role: "superadmin" }, "superadmin"), false);
+  assert.equal(canResetPassword({ role: "admin" }, "staff"), true);
+  assert.equal(canResetPassword({ role: "admin" }, "admin"), false);
+  assert.equal(canResetPassword({ role: "staff" }, "staff"), false);
+  assert.equal(canResetPassword(null, "staff"), false);
+});
 
 const admin = { userId: "admin-1", name: "Admin", email: "admin@example.com", role: "admin" };
 const timestamp = "2026-09-25T10:00:00.000Z";

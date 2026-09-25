@@ -71,6 +71,13 @@ test('every API request names the displayed account and reacts to a changed sess
   assert.doesNotMatch(html, /body:JSON\.stringify\(\{action:'(create_user|set_user_access|set_user_role)'[^\n]*credentials/);
 });
 
+test('administrators can reset another user password from the administration view', () => {
+  assert.match(html, /<form id="resetPasswordForm"/);
+  assert.match(html, /action:'reset_password',userId:user\.id,password:\$\('#resetPasswordValue'\)\.value/);
+  assert.match(html, /function canResetPasswordOf\(user\)\{ return \(currentUser\?\.role==='superadmin'&&\['admin','staff'\]\.includes\(user\.role\)\)\|\|\(currentUser\?\.role==='admin'&&user\.role==='staff'\); \}/);
+  assert.match(html, /if\(event\.action==='password_reset'\)return t\('passwordResetDetail'/);
+});
+
 test('the sign-in form leaves SuperAdmin setup mode after the first account is created', () => {
   assert.match(html, /setupRequired=false; updateAuthScreen\(\);/);
 });
