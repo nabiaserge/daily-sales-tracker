@@ -1,4 +1,4 @@
-const CACHE_NAME = 'suivi-ventes-shell-v2';
+const CACHE_NAME = 'suivi-ventes-shell-v3';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/privacy.html', '/assets/offline-store.js', '/assets/pagination.js'];
 
 self.addEventListener('install', (event) => {
@@ -11,16 +11,27 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Serve the cached copy immediately and refresh it in the background, so the app opens
+// instantly on slow or absent networks and picks up new deployments on the next launch.
+function staleWhileRevalidate(event, cacheKey) {
+  const refresh = fetch(event.request).then((response) => {
+    if (response.ok) {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(cacheKey, copy));
+    }
+    return response;
+  });
+  event.waitUntil(refresh.catch(() => {}));
+  return caches.match(cacheKey).then((cached) => cached || refresh);
+}
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (event.request.method !== 'GET' || url.pathname.startsWith('/.netlify/functions/')) return;
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/.netlify/functions/')) return;
   if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request).catch(() => caches.match('/index.html')));
+    const cacheKey = url.pathname === '/privacy.html' ? '/privacy.html' : '/index.html';
+    event.respondWith(staleWhileRevalidate(event, cacheKey).catch(() => caches.match('/index.html')));
     return;
   }
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-    const copy = response.clone();
-    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-    return response;
-  })));
+  event.respondWith(staleWhileRevalidate(event, event.request));
 });
