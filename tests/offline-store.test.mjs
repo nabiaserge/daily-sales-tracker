@@ -51,6 +51,24 @@ test('synchronized sales leave the queue and rejected sales are flagged', () => 
   assert.equal(queue[1].error, undefined);
 });
 
+test('production and expense queues are separate, deduplicated by their key and survive session expiry', () => {
+  memory.clear();
+  store.enqueuePendingRecord('production', 'user-6', { date:'2026-09-01', units:[1], products:['Eau'] }, 'date');
+  store.enqueuePendingRecord('production', 'user-6', { date:'2026-09-01', units:[5], products:['Eau'] }, 'date');
+  store.enqueuePendingRecord('expenses', 'user-6', { id:'e1', amount:100 }, 'id');
+  store.enqueuePendingRecord('expenses', 'user-6', { id:'e2', amount:200 }, 'id');
+  assert.deepEqual(store.listPendingRecords('production', 'user-6').map((item) => item.units[0]), [5]);
+  assert.equal(store.listPendingRecords('expenses', 'user-6').length, 2);
+  store.saveOperationsSnapshot('user-6', { production:[], expenses:[] });
+  store.clearOfflineSnapshot('user-6');
+  assert.equal(store.loadOperationsSnapshot('user-6'), null);
+  assert.equal(store.listPendingRecords('expenses', 'user-6').length, 2);
+  const [first] = store.listPendingRecords('expenses', 'user-6');
+  store.markPendingRecordsRejected('expenses', 'user-6', [{ queueId:first.queueId, error:'invalid_expense_data' }]);
+  store.removePendingRecords('expenses', 'user-6', [store.listPendingRecords('expenses', 'user-6')[1].queueId]);
+  assert.deepEqual(store.listPendingRecords('expenses', 'user-6').map((item) => [item.id, item.error]), [['e1', 'invalid_expense_data']]);
+});
+
 test('re-entering a rejected sale clears its previous error', () => {
   memory.clear();
   store.enqueuePendingSale('user-5', { id:'a', date:'2026-09-01', units:[1], products:['Eau'] });

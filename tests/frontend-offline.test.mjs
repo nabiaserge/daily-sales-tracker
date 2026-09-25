@@ -45,8 +45,22 @@ test('network requests time out so weak connections fall back to local data quic
 });
 
 test('pending sales are retried without waiting for an online event', () => {
-  assert.match(html, /setInterval\(\(\)=>\{ if\(currentUser&&navigator\.onLine&&!isSynchronizing&&syncablePendingSales\(\)\.length\)synchronizePendingSales\(\); \},syncRetryMs\);/);
+  assert.match(html, /setInterval\(\(\)=>\{ if\(currentUser&&navigator\.onLine&&!isSynchronizing&&syncablePendingSales\(\)\.length\)synchronizePendingSales\(\); if\(currentUser&&navigator\.onLine&&operations\.counts\(\)\.syncable\)operations\.sync\(\); \},syncRetryMs\);/);
   assert.match(html, /document\.addEventListener\('visibilitychange'/);
+});
+
+test('production and expense tabs are shown only to administrators', () => {
+  assert.match(html, /<button id="productionTab" class="tab hidden" data-view="production"/);
+  assert.match(html, /<button id="expensesTab" class="tab hidden" data-view="expenses"/);
+  assert.match(html, /manageOperations:global\}/);
+  assert.match(html, /\$\('#productionTab'\)\.classList\.toggle\('hidden',!capabilities\.manageOperations\)/);
+  assert.match(html, /if\(\['production','expenses'\]\.includes\(view\)&&!capabilities\.manageOperations\)return false;/);
+});
+
+test('the operations module is part of the offline app shell', async () => {
+  const worker = await readFile(new URL('../service-worker.js', import.meta.url), 'utf8');
+  assert.match(worker, /'\/assets\/operations\.js'/);
+  assert.match(html, /import \{ createOperations \} from '\/assets\/operations\.js';/);
 });
 
 test('deletions target a single date instead of rewriting all sales', () => {

@@ -31,6 +31,11 @@ export function canDeleteSales(session) {
   return canViewGlobalDashboard(session);
 }
 
+// Production and expense records are restricted to Admin and SuperAdmin.
+export function canManageOperations(session) {
+  return hasRole(session, [roles.superadmin, roles.admin]);
+}
+
 export function canManageProducts(session) {
   return session?.role === roles.superadmin;
 }
