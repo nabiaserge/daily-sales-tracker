@@ -2,7 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { randomUUID } from "node:crypto";
 import { isRestorableSnapshot, summarizeSnapshot } from "./recovery.mjs";
 
-const store = getStore("daily-sales-backups");
+const store = getStore({ name: "daily-sales-backups", consistency: "strong" });
 const backupIndexKey = "backups:index";
 
 export async function listRecoverySnapshots(limit = 20) {

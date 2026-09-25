@@ -3,7 +3,10 @@ import { getStore } from "@netlify/blobs";
 import { applicationRoles } from "./permissions.mjs";
 import { deviceSessionKey, sessionDurationMs } from "./device-session.mjs";
 
-const authStore = getStore("daily-sales-auth");
+// Default Blobs reads are eventually consistent (up to 60 s behind writes): a session created
+// at login would be unreadable on the next request and the user sent back to sign in.
+// Every store in this project reads with strong consistency.
+const authStore = getStore({ name: "daily-sales-auth", consistency: "strong" });
 const sessionCookie = "sales_session";
 
 export function getCookie(request, name) {

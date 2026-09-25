@@ -9,7 +9,7 @@ import { alignUnits } from "../lib/products.mjs";
 import { productionKey, realignProduction } from "../lib/operations.mjs";
 import { getSession, sessionChangedResponse, sessionUserMismatch } from "../lib/session.mjs";
 
-const store = getStore("daily-sales-tracker");
+const store = getStore({ name: "daily-sales-tracker", consistency: "strong" });
 const defaultData = {
   products: ["Product One", "Product Two", "Product Three", "Product Four"],
   entries: []
