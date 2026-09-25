@@ -14,7 +14,7 @@ import { canManageOperations } from "../lib/permissions.mjs";
 import { validSaleDate } from "../lib/sales-upsert.mjs";
 import { getSession, sessionChangedResponse, sessionUserMismatch } from "../lib/session.mjs";
 
-const store = getStore("daily-sales-tracker");
+const store = getStore({ name: "daily-sales-tracker", consistency: "strong" });
 const auditKey = "audit:shared";
 const noStore = { "Cache-Control": "no-store" };
 const datasets = {
