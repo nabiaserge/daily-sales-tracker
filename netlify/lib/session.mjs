@@ -43,6 +43,8 @@ export async function getSession(request) {
   return { ...session, token };
 }
 
+export { sessionChangedResponse, sessionUserMismatch } from "./device-session.mjs";
+
 export function createSessionCookie(token) {
   return `${sessionCookie}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`;
 }

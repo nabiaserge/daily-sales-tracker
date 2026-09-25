@@ -29,7 +29,7 @@ test('history views use bounded pagination', () => {
 });
 
 test('an unauthorized response clears the cached snapshot but never the pending sales queue', () => {
-  assert.match(html, /function handleUnauthorized\(\)\{ clearOfflineSnapshot\(currentUser\?\.id\);/);
+  assert.match(html, /function handleUnauthorized\(reason='expired'\)\{\s*if\(!currentUser\)return;\s*clearOfflineSnapshot\(currentUser\.id\);/);
   assert.doesNotMatch(html, /clearOfflineSession/);
 });
 
@@ -63,12 +63,24 @@ test('the operations module is part of the offline app shell', async () => {
   assert.match(html, /import \{ createOperations \} from '\/assets\/operations\.js';/);
 });
 
+test('every API request names the displayed account and reacts to a changed session', () => {
+  assert.match(html, /if\(currentUser\?\.id\)headers\['X-Session-User'\]=currentUser\.id;/);
+  assert.match(html, /if\(response\.headers\.get\('X-Session-Changed'\)\)handleUnauthorized\('changed'\);/);
+  assert.doesNotMatch(html, /await fetch\(`\$\{salesEndpoint\}/);
+  assert.doesNotMatch(html, /await fetch\(`\$\{authEndpoint\}\?(users|audit)=1`/);
+  assert.doesNotMatch(html, /body:JSON\.stringify\(\{action:'(create_user|set_user_access|set_user_role)'[^\n]*credentials/);
+});
+
+test('the sign-in form leaves SuperAdmin setup mode after the first account is created', () => {
+  assert.match(html, /setupRequired=false; updateAuthScreen\(\);/);
+});
+
 test('deletions target a single date instead of rewriting all sales', () => {
   assert.match(html, /request\(`\$\{salesEndpoint\}\?date=\$\{encodeURIComponent\(date\)\}`,\{method:'DELETE'\}\)/);
 });
 
 test('authentication events are merged into the visible audit trail', () => {
-  assert.match(html, /fetch\(`\$\{authEndpoint\}\?audit=1`/);
+  assert.match(html, /request\(`\$\{authEndpoint\}\?audit=1`\)/);
   assert.match(html, /function mergeAuditEvents\(salesEvents\)/);
   assert.match(html, /event\.action==='user_login'/);
   assert.match(html, /event\.action==='user_logout'/);

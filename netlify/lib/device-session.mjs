@@ -2,6 +2,23 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 export const sessionDurationMs = 24 * 60 * 60 * 1000;
 
+// The session cookie is shared by every tab of a browser. When another account signs in
+// from a second tab, an older tab would otherwise keep acting under the new account.
+// Clients send the user they display in this header; a mismatch is refused.
+export const expectedUserHeader = "x-session-user";
+
+export function sessionUserMismatch(request, session) {
+  const expected = request.headers.get(expectedUserHeader);
+  return Boolean(expected && session && expected !== session.userId);
+}
+
+export function sessionChangedResponse() {
+  return Response.json({ error: "session_changed" }, {
+    status: 409,
+    headers: { "Cache-Control": "no-store", "X-Session-Changed": "1" }
+  });
+}
+
 export function normalizeDeviceId(value) {
   const deviceId = String(value ?? "").trim();
   return /^[a-zA-Z0-9_-]{16,128}$/.test(deviceId) ? deviceId : randomUUID();

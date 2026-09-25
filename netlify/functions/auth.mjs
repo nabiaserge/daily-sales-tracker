@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from
 import { appendAuthenticationEvent, listAuthenticationEvents } from "../lib/auth-audit.mjs";
 import { activateDeviceSession, closeDeviceSession, createDeviceSession } from "../lib/device-session.mjs";
 import { applicationRoles, assignableRoles, canChangeAccess, canChangeRole, canCreateUsers, canViewAudit, canViewUsers, roles } from "../lib/permissions.mjs";
-import { authStore, clearSessionCookie, createSessionCookie, getSession } from "../lib/session.mjs";
+import { authStore, clearSessionCookie, createSessionCookie, getSession, sessionChangedResponse, sessionUserMismatch } from "../lib/session.mjs";
 
 const jsonHeaders = { "Cache-Control": "no-store", "Content-Type": "application/json" };
 const usersIndexKey = "users:index";
@@ -216,6 +216,11 @@ export default async (request) => {
 
   if (request.method === "GET") {
     const session = await getSession(request);
+    // The plain session check is how a page learns which account the cookie belongs to,
+    // so only the audit and user lists enforce the expected user.
+    if ((url.searchParams.get("audit") === "1" || url.searchParams.get("users") === "1") && sessionUserMismatch(request, session)) {
+      return sessionChangedResponse();
+    }
     if (url.searchParams.get("audit") === "1") {
       if (!canViewAudit(session)) return Response.json({ error: "forbidden" }, { status: 403, headers: jsonHeaders });
       return Response.json({ audit: await listAuthenticationEvents(authStore) }, { headers: jsonHeaders });
@@ -240,9 +245,13 @@ export default async (request) => {
 
   const body = await request.json().catch(() => ({}));
   if (body.action === "bootstrap") return bootstrapSuperAdmin(body);
-  if (body.action === "create_user") return createUser(body, await getSession(request));
-  if (body.action === "set_user_access") return setUserAccess(body, await getSession(request));
-  if (body.action === "set_user_role") return setUserRole(body, await getSession(request));
+  if (["create_user", "set_user_access", "set_user_role"].includes(body.action)) {
+    const session = await getSession(request);
+    if (sessionUserMismatch(request, session)) return sessionChangedResponse();
+    if (body.action === "create_user") return createUser(body, session);
+    if (body.action === "set_user_access") return setUserAccess(body, session);
+    return setUserRole(body, session);
+  }
   if (body.action !== "login") {
     return Response.json({ error: "invalid_action" }, { status: 400, headers: jsonHeaders });
   }

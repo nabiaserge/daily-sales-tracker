@@ -96,7 +96,7 @@ public final class MainActivity extends Activity {
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setUserAgentString(settings.getUserAgentString() + " SuiviVentesAndroid/1.0.1");
+        settings.setUserAgentString(settings.getUserAgentString() + " SuiviVentesAndroid/1.0.2");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             settings.setSafeBrowsingEnabled(true);
         }
@@ -139,6 +139,14 @@ public final class MainActivity extends Activity {
         } else {
             super.onBackPressed();
         }
+    }
+
+    // The WebView writes cookies to disk only periodically. Persist the session cookie whenever
+    // the app leaves the foreground so a killed app does not lose a fresh login.
+    @Override
+    protected void onPause() {
+        CookieManager.getInstance().flush();
+        super.onPause();
     }
 
     @Override

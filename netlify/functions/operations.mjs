@@ -12,7 +12,7 @@ import {
 } from "../lib/operations.mjs";
 import { canManageOperations } from "../lib/permissions.mjs";
 import { validSaleDate } from "../lib/sales-upsert.mjs";
-import { getSession } from "../lib/session.mjs";
+import { getSession, sessionChangedResponse, sessionUserMismatch } from "../lib/session.mjs";
 
 const store = getStore("daily-sales-tracker");
 const auditKey = "audit:shared";
@@ -53,6 +53,7 @@ async function commit({ kind, previous, entries, events, session, reason }) {
 export default async (request) => {
   const session = await getSession(request);
   if (!session) return Response.json({ error: "unauthorized" }, { status: 401, headers: noStore });
+  if (sessionUserMismatch(request, session)) return sessionChangedResponse();
   if (!canManageOperations(session)) return Response.json({ error: "forbidden" }, { status: 403, headers: noStore });
 
   const url = new URL(request.url);

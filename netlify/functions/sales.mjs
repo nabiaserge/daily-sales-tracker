@@ -7,7 +7,7 @@ import { authorizeSalesMutation, mergeStaffSales, ownsSale } from "../lib/sales-
 import { applySaleUpserts, maxSalesPerBatch, validSaleDate } from "../lib/sales-upsert.mjs";
 import { alignUnits } from "../lib/products.mjs";
 import { productionKey, realignProduction } from "../lib/operations.mjs";
-import { getSession } from "../lib/session.mjs";
+import { getSession, sessionChangedResponse, sessionUserMismatch } from "../lib/session.mjs";
 
 const store = getStore("daily-sales-tracker");
 const defaultData = {
@@ -277,6 +277,7 @@ async function handleSaleDeletion(url, session) {
 export default async (request) => {
   const session = await getSession(request);
   if (!session) return Response.json({ error: "unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  if (sessionUserMismatch(request, session)) return sessionChangedResponse();
 
   const url = new URL(request.url);
   if (url.searchParams.get("recovery") === "1") return handleRecovery(request, session);
